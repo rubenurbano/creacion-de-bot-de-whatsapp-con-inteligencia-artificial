@@ -1,0 +1,2683 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Tutorial paso a paso para crear, desplegar y entregar un bot de WhatsApp con Inteligencia Artificial usando OpenLivery y Meta WhatsApp Cloud API.">
+<title>Bot de WhatsApp con IA y Meta Cloud API en OpenLivery — Tutorial V001</title>
+<style>
+/* ============ 1. VARIABLES Y BASE ============ */
+:root{
+  --bg:#0a0e1a;
+  --card:#0f172a;
+  --blue:#1e3a5f;
+  --text:#e2e8f0;
+  --muted:#94a3b8;
+  --accent:#38bdf8;
+  --line:rgba(148,163,184,.22);
+  --line-strong:rgba(56,189,248,.45);
+  --ok:#34d399;
+  --warn:#fbbf24;
+  --err:#f87171;
+  --code-bg:#060a12;
+  --fs:1;
+  --radius:14px;
+  --shadow:0 8px 24px rgba(0,0,0,.28);
+}
+html[data-theme="light"]{
+  --bg:#eef2f8;
+  --card:#ffffff;
+  --blue:#dbeafe;
+  --text:#0f172a;
+  --muted:#475569;
+  --accent:#0369a1;
+  --line:rgba(15,23,42,.15);
+  --line-strong:rgba(3,105,161,.4);
+  --ok:#047857;
+  --warn:#92400e;
+  --err:#b91c1c;
+  --code-bg:#0f172a;
+  --shadow:0 8px 24px rgba(15,23,42,.10);
+}
+*{box-sizing:border-box;}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth;}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  font-size:calc(16px * var(--fs));
+  line-height:1.66;
+  overflow-wrap:break-word;
+}
+h1,h2,h3,h4{line-height:1.25;margin:0 0 .5em;}
+h1{font-size:calc(1.55rem * var(--fs));letter-spacing:-.01em;}
+h2{font-size:calc(1.3rem * var(--fs));margin-top:1.4em;padding-bottom:.35em;border-bottom:1px solid var(--line);}
+h3{font-size:calc(1.08rem * var(--fs));margin-top:1.2em;}
+h4{font-size:calc(1rem * var(--fs));margin-top:1em;color:var(--accent);}
+p{margin:0 0 .85em;}
+ul,ol{margin:0 0 .9em;padding-left:1.35em;}
+li{margin-bottom:.4em;}
+a{color:var(--accent);text-decoration:underline;text-underline-offset:2px;}
+a:hover{text-decoration-thickness:2px;}
+strong{color:var(--text);font-weight:700;}
+code{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  font-size:.9em;
+  background:rgba(56,189,248,.12);
+  border:1px solid var(--line);
+  border-radius:6px;
+  padding:.1em .35em;
+  word-break:break-word;
+}
+.sr-only{
+  position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+  clip:rect(0,0,0,0);white-space:nowrap;border:0;
+}
+.skip{
+  position:absolute;left:-999px;top:0;background:var(--accent);color:#04121d;
+  padding:10px 16px;z-index:200;border-radius:0 0 10px 0;font-weight:700;
+}
+.skip:focus{left:0;}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px;}
+
+/* ============ 2. BARRA DE PROGRESO Y ESTRUCTURA ============ */
+#progress{
+  position:fixed;top:0;left:0;right:0;height:4px;background:transparent;z-index:120;pointer-events:none;
+}
+#progressBar{height:100%;width:0;background:linear-gradient(90deg,#38bdf8,#22d3ee);transition:width .12s linear;}
+
+.topbar{
+  padding:18px 16px 6px;
+  max-width:1000px;margin:0 auto;
+}
+.brand{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:12px;}
+.logo{
+  width:40px;height:40px;border-radius:12px;flex:0 0 auto;
+  background:linear-gradient(135deg,#38bdf8,#1e3a5f);
+  display:grid;place-items:center;font-weight:800;color:#04121d;font-size:15px;
+}
+.brand-text{font-size:.82rem;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;font-weight:700;}
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px;}
+.btn{
+  font:inherit;font-size:.86rem;line-height:1;
+  background:var(--card);color:var(--text);
+  border:1px solid var(--line);border-radius:999px;
+  padding:10px 14px;cursor:pointer;
+  transition:border-color .15s,background .15s,transform .08s;
+}
+.btn:hover{border-color:var(--line-strong);}
+.btn:active{transform:translateY(1px);}
+.btn.accent{border-color:var(--line-strong);color:var(--accent);font-weight:700;}
+.pill{
+  font-size:.8rem;color:var(--muted);border:1px dashed var(--line);
+  border-radius:999px;padding:8px 10px;min-width:58px;text-align:center;
+}
+.search-wrap{position:relative;margin-bottom:6px;}
+#q{
+  width:100%;font:inherit;font-size:.95rem;
+  background:var(--card);color:var(--text);
+  border:1px solid var(--line);border-radius:12px;
+  padding:12px 14px;
+}
+#q::placeholder{color:var(--muted);}
+.results{
+  position:absolute;z-index:90;left:0;right:0;top:calc(100% + 6px);
+  background:var(--card);border:1px solid var(--line-strong);
+  border-radius:12px;box-shadow:var(--shadow);
+  max-height:62vh;overflow:auto;padding:6px;
+}
+.res-item{
+  display:block;width:100%;text-align:left;font:inherit;
+  background:transparent;border:0;border-radius:9px;
+  padding:10px;color:var(--text);cursor:pointer;
+}
+.res-item:hover,.res-item:focus-visible{background:rgba(56,189,248,.12);}
+.res-tab{
+  display:inline-block;font-size:.7rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--accent);margin-bottom:2px;
+}
+.res-text{display:block;font-size:.86rem;color:var(--muted);line-height:1.45;}
+.res-empty{padding:14px;color:var(--muted);font-size:.9rem;}
+
+/* ============ 3. PESTAÑAS ============ */
+.tabbar{
+  position:sticky;top:0;z-index:80;
+  background:var(--bg);
+  border-bottom:1px solid var(--line);
+  margin-top:14px;
+}
+.tabs{
+  display:flex;gap:6px;overflow-x:auto;
+  padding:10px 16px;max-width:1000px;margin:0 auto;
+  scrollbar-width:thin;
+}
+.tabs::-webkit-scrollbar{height:6px;}
+.tabs::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:99px;}
+.tab{
+  font:inherit;font-size:.85rem;font-weight:700;white-space:nowrap;
+  background:transparent;color:var(--muted);
+  border:1px solid var(--line);border-radius:999px;
+  padding:9px 14px;cursor:pointer;transition:.15s;
+}
+.tab:hover{color:var(--text);border-color:var(--line-strong);}
+.tab[aria-selected="true"]{
+  background:var(--blue);color:var(--text);border-color:var(--accent);
+  box-shadow:inset 0 0 0 1px var(--line-strong);
+}
+
+/* ============ 4. CONTENIDO ============ */
+main{max-width:1000px;margin:0 auto;padding:18px 16px 60px;}
+.panel{display:none;animation:fade .25s ease;}
+.panel.is-active{display:block;}
+@keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+.print-only{display:none;}
+
+.card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:16px;
+  margin:0 0 16px;
+  box-shadow:var(--shadow);
+}
+.card.tight{padding:14px;}
+.card h3:first-child,.card h2:first-child{margin-top:0;}
+.step{border-left:4px solid var(--blue);}
+.num{
+  display:inline-block;background:var(--blue);color:var(--accent);
+  border:1px solid var(--line-strong);border-radius:8px;
+  font-size:.78rem;font-weight:800;padding:2px 7px;margin-right:8px;vertical-align:2px;
+}
+.goal{background:rgba(56,189,248,.09);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;padding:10px 12px;}
+.result{background:rgba(52,211,153,.10);border-left:3px solid var(--ok);border-radius:0 8px 8px 0;padding:10px 12px;}
+.warnbox{background:rgba(251,191,36,.10);border-left:3px solid var(--warn);border-radius:0 8px 8px 0;padding:10px 12px;}
+.errbox{background:rgba(248,113,113,.10);border-left:3px solid var(--err);border-radius:0 8px 8px 0;padding:10px 12px;}
+.note{font-size:.88rem;color:var(--muted);}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 16px;padding:0;list-style:none;}
+.chips li{
+  font-size:.78rem;font-weight:700;color:var(--accent);
+  border:1px solid var(--line-strong);border-radius:999px;padding:6px 11px;margin:0;
+  background:rgba(56,189,248,.08);
+}
+.grid{display:grid;gap:14px;grid-template-columns:1fr;}
+@media(min-width:720px){.grid.two{grid-template-columns:1fr 1fr;}.grid.three{grid-template-columns:1fr 1fr 1fr;}}
+
+/* Código y copiar */
+.codeblock{position:relative;margin:12px 0;}
+.codeblock pre{
+  margin:0;background:var(--code-bg);color:#e2e8f0;
+  border:1px solid var(--line);border-radius:12px;
+  padding:42px 14px 14px;overflow-x:auto;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:.86rem;line-height:1.55;
+}
+.codeblock pre code{background:none;border:0;padding:0;color:inherit;font-size:inherit;}
+.copy{
+  font:inherit;font-size:.72rem;font-weight:800;letter-spacing:.08em;
+  background:var(--blue);color:var(--accent);
+  border:1px solid var(--line-strong);border-radius:8px;
+  padding:6px 10px;cursor:pointer;
+}
+.copy:hover{background:rgba(56,189,248,.18);}
+.codeblock .copy{position:absolute;top:8px;right:8px;z-index:2;}
+.copy.done{color:var(--ok);border-color:var(--ok);}
+.copy.fail{color:var(--err);border-color:var(--err);}
+.copybar{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0;}
+
+/* Tablas */
+.table-wrap{overflow-x:auto;margin:12px 0;border:1px solid var(--line);border-radius:12px;}
+table{width:100%;border-collapse:collapse;min-width:420px;font-size:.9rem;}
+caption{caption-side:top;text-align:left;padding:10px 12px;color:var(--muted);font-size:.82rem;}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top;}
+thead th{background:var(--blue);color:var(--text);font-size:.8rem;letter-spacing:.04em;text-transform:uppercase;}
+tbody tr:last-child td{border-bottom:0;}
+tbody tr:nth-child(even){background:rgba(148,163,184,.05);}
+
+/* Details */
+details{
+  background:var(--card);border:1px solid var(--line);
+  border-radius:12px;margin:10px 0;padding:0;overflow:hidden;
+}
+details[open]{border-color:var(--line-strong);}
+summary{
+  cursor:pointer;padding:12px 14px;font-weight:700;font-size:.94rem;
+  list-style:none;display:flex;gap:10px;align-items:flex-start;
+}
+summary::-webkit-details-marker{display:none;}
+summary::before{
+  content:"+";flex:0 0 auto;width:22px;height:22px;border-radius:6px;
+  background:var(--blue);color:var(--accent);display:grid;place-items:center;
+  font-weight:800;font-size:.9rem;line-height:1;
+}
+details[open] summary::before{content:"–";}
+summary:hover{background:rgba(56,189,248,.07);}
+.details-body{padding:0 14px 14px;}
+.qa summary{font-weight:700;}
+
+/* Checklists */
+.check{
+  display:flex;gap:10px;align-items:flex-start;
+  padding:9px 11px;border:1px solid var(--line);border-radius:10px;
+  margin-bottom:8px;cursor:pointer;background:rgba(148,163,184,.04);
+  font-size:.92rem;
+}
+.check:hover{border-color:var(--line-strong);}
+.check input{
+  width:20px;height:20px;margin:2px 0 0;flex:0 0 auto;accent-color:#38bdf8;cursor:pointer;
+}
+.check input:checked + span{color:var(--muted);text-decoration:line-through;}
+
+/* Flujo */
+.flow{list-style:none;padding:0;margin:14px 0;counter-reset:fl;}
+.flow li{
+  counter-increment:fl;position:relative;
+  padding:11px 12px 11px 46px;margin-bottom:8px;
+  background:rgba(56,189,248,.07);border:1px solid var(--line);border-radius:10px;
+  font-size:.92rem;
+}
+.flow li::before{
+  content:counter(fl);position:absolute;left:10px;top:10px;
+  width:26px;height:26px;border-radius:8px;background:var(--blue);color:var(--accent);
+  display:grid;place-items:center;font-weight:800;font-size:.82rem;
+  border:1px solid var(--line-strong);
+}
+
+/* SVG */
+.svg-host{
+  width:100%;margin:6px 0 6px;border-radius:16px;overflow:hidden;
+  border:1px solid var(--line);background:#0b1626;
+  min-height:120px;
+}
+.svg-host svg,.svg-host img{display:block;width:100%;height:auto;}
+.art text{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;}
+.svg-tools{display:flex;gap:8px;align-items:center;margin:0 0 16px;flex-wrap:wrap;}
+.svg-cap{font-size:.8rem;color:var(--muted);margin:0;}
+
+/* Varios */
+.hit{animation:hit 2.6s ease;}
+@keyframes hit{0%,60%{background:rgba(56,189,248,.28);box-shadow:0 0 0 4px rgba(56,189,248,.28);border-radius:6px;}100%{background:transparent;box-shadow:none;}}
+#toTop{
+  position:fixed;right:16px;bottom:16px;z-index:100;
+  width:48px;height:48px;border-radius:50%;
+  background:var(--blue);color:var(--accent);border:1px solid var(--line-strong);
+  font-size:1.2rem;font-weight:800;cursor:pointer;
+  opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;
+  box-shadow:var(--shadow);
+}
+#toTop.show{opacity:1;pointer-events:auto;}
+#toTop:hover{transform:translateY(-2px);}
+#toast{
+  position:fixed;left:50%;bottom:22px;transform:translate(-50%,20px);
+  background:var(--card);color:var(--text);border:1px solid var(--line-strong);
+  border-radius:12px;padding:12px 16px;max-width:min(92vw,460px);
+  font-size:.88rem;box-shadow:var(--shadow);z-index:150;
+  opacity:0;pointer-events:none;transition:.22s;text-align:center;
+}
+#toast.show{opacity:1;transform:translate(-50%,0);}
+footer{
+  border-top:1px solid var(--line);padding:20px 16px 40px;text-align:center;
+  color:var(--muted);font-size:.82rem;max-width:1000px;margin:0 auto;
+}
+.author-name{
+  display:block;font-size:calc(2rem * var(--fs));font-weight:800;letter-spacing:-.02em;
+  color:var(--text);line-height:1.15;margin:6px 0 2px;
+  background:linear-gradient(135deg,#38bdf8,#a5f3fc);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+}
+html[data-theme="light"] .author-name{
+  background:linear-gradient(135deg,#0369a1,#0891b2);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+}
+.author-role{font-size:.95rem;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;font-weight:700;margin:0 0 14px;}
+.kv{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0;}
+.kv span{font-size:.8rem;border:1px solid var(--line);border-radius:999px;padding:5px 10px;color:var(--muted);}
+.url-item{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px dashed var(--line);}
+.url-item:last-child{border-bottom:0;}
+.url-item a{word-break:break-all;font-size:.86rem;flex:1 1 auto;min-width:0;}
+.url-item .copy{flex:0 0 auto;}
+
+/* ============ 5. IMPRESIÓN ============ */
+@media print{
+  @page{size:A4 portrait;margin:14mm 12mm;}
+  html,body{
+    background:#fff !important;color:#000 !important;
+    font-size:11pt !important;line-height:1.45 !important;
+  }
+  #progress,.topbar,.tabbar,#toTop,#toast,.no-print,.svg-tools,.copybar,.search-wrap{display:none !important;}
+  main{max-width:none;padding:0;margin:0;}
+  .panel{display:block !important;animation:none !important;page-break-after:auto;}
+  .print-only{display:block !important;}
+  h2{border-bottom:1px solid #999;page-break-after:avoid;}
+  h3,h4{page-break-after:avoid;}
+  .card,.step,details,table,pre,.flow li,.check{
+    background:#fff !important;color:#000 !important;
+    border:1px solid #999 !important;box-shadow:none !important;
+    page-break-inside:avoid;
+  }
+  .goal,.result,.warnbox,.errbox{
+    background:#fff !important;color:#000 !important;border-left:3px solid #555 !important;
+  }
+  .codeblock pre,pre{background:#fff !important;color:#000 !important;white-space:pre-wrap;word-break:break-word;}
+  code{background:#f2f2f2 !important;color:#000 !important;border:1px solid #ccc !important;}
+  a{color:#000 !important;text-decoration:underline;}
+  thead th{background:#eee !important;color:#000 !important;}
+  tbody tr:nth-child(even){background:#fafafa !important;}
+  .table-wrap{overflow:visible !important;border:1px solid #999 !important;}
+  table{min-width:0 !important;width:100% !important;}
+  .svg-host{border:1px solid #999 !important;background:#fff !important;page-break-inside:avoid;min-height:0;}
+  .chips li{color:#000 !important;border:1px solid #999 !important;background:#fff !important;}
+  .author-name{-webkit-text-fill-color:#000 !important;color:#000 !important;background:none !important;}
+  details{border:1px solid #999 !important;}
+  summary::before{background:#eee !important;color:#000 !important;border:1px solid #999 !important;}
+  .check input{accent-color:#000 !important;}
+}
+</style>
+</head>
+<body>
+
+<a class="skip" href="#main">Saltar al contenido</a>
+
+<div id="progress" aria-hidden="true"><div id="progressBar"></div></div>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="logo" aria-hidden="true">OL</div>
+    <div>
+      <div class="brand-text">Tutorial guiado · OpenLivery · WhatsApp Cloud API</div>
+      <div class="brand-text" style="text-transform:none;letter-spacing:0;font-size:.82rem;color:var(--text);font-weight:700;">
+        Bot de WhatsApp con Inteligencia Artificial
+      </div>
+    </div>
+  </div>
+
+  <div class="tools" role="group" aria-label="Herramientas de lectura">
+    <button id="btnFontDown" class="btn" type="button" aria-label="Reducir el tamaño de la letra">A−</button>
+    <span id="fontLabel" class="pill" aria-live="polite">100%</span>
+    <button id="btnFontUp" class="btn" type="button" aria-label="Aumentar el tamaño de la letra">A+</button>
+    <button id="btnTheme" class="btn" type="button">Tema claro</button>
+    <button id="btnPrint" class="btn accent" type="button">Imprimir / Guardar PDF</button>
+  </div>
+
+  <div class="search-wrap">
+    <label class="sr-only" for="q">Buscar dentro del tutorial</label>
+    <input id="q" type="search" placeholder="Buscar: webhook, token, Google Calendar, costos…" autocomplete="off" spellcheck="false">
+    <div id="results" class="results" hidden role="region" aria-label="Resultados de búsqueda"></div>
+  </div>
+</header>
+
+<div class="tabbar">
+  <nav class="tabs" role="tablist" aria-label="Secciones del tutorial">
+    <button class="tab" role="tab" id="tab-inicio"      data-tab="inicio"      aria-controls="panel-inicio"      aria-selected="true"  tabindex="0">INICIO</button>
+    <button class="tab" role="tab" id="tab-conceptos"   data-tab="conceptos"   aria-controls="panel-conceptos"   aria-selected="false" tabindex="-1">CONCEPTOS</button>
+    <button class="tab" role="tab" id="tab-procedimiento" data-tab="procedimiento" aria-controls="panel-procedimiento" aria-selected="false" tabindex="-1">PROCEDIMIENTO</button>
+    <button class="tab" role="tab" id="tab-practica"    data-tab="practica"    aria-controls="panel-practica"    aria-selected="false" tabindex="-1">PRÁCTICA</button>
+    <button class="tab" role="tab" id="tab-errores"     data-tab="errores"     aria-controls="panel-errores"     aria-selected="false" tabindex="-1">ERRORES</button>
+    <button class="tab" role="tab" id="tab-resumen"     data-tab="resumen"     aria-controls="panel-resumen"     aria-selected="false" tabindex="-1">RESUMEN</button>
+    <button class="tab" role="tab" id="tab-fuentes"     data-tab="fuentes"     aria-controls="panel-fuentes"     aria-selected="false" tabindex="-1">FUENTES</button>
+    <button class="tab" role="tab" id="tab-creditos"    data-tab="creditos"    aria-controls="panel-creditos"    aria-selected="false" tabindex="-1">CRÉDITOS</button>
+  </nav>
+</div>
+
+<main id="main">
+
+<!-- ===================================================================
+     PANEL: INICIO
+==================================================================== -->
+<section class="panel is-active" id="panel-inicio" role="tabpanel" aria-labelledby="tab-inicio" data-name="INICIO">
+  <h2 class="print-only">INICIO</h2>
+
+  <h1>Tu bot de WhatsApp con Inteligencia Artificial, de cero a producción</h1>
+  <p style="font-size:1.02rem;color:var(--muted);">
+    Tutorial completo basado en la <em>Guía Maestra paso a paso</em> de OpenLivery: conceptos, despliegue,
+    configuración del agente, conexión oficial con Meta Cloud API, pruebas, entrega al cliente y resolución de problemas.
+  </p>
+
+  <div class="svg-host" id="svgInicio" role="img"
+       aria-label="Ilustración animada: un teléfono móvil central con un agente de inteligencia artificial muestra mensajes de chat; a su izquierda, el nodo de la plataforma OpenLivery y a su derecha el nodo de Meta intercambian datos mediante líneas discontinuas en movimiento."></div>
+  <div class="svg-tools no-print">
+    <button class="btn" type="button" data-svg-toggle="svgInicio">Pausar animación</button>
+    <p class="svg-cap" style="margin:0;">La ilustración resume el recorrido: OpenLivery actúa como puente entre tu agente de IA y Meta.</p>
+  </div>
+
+  <ul class="chips">
+    <li>Nivel: principiante a intermedio</li>
+    <li>Duración estimada: 3–5 horas</li>
+    <li>Sin código propio</li>
+    <li>Enfoque: manos a la obra</li>
+  </ul>
+
+  <div class="card">
+    <h3>¿Qué vas a conseguir?</h3>
+    <ul>
+      <li>Entender <strong>qué es un agente conversacional</strong> y en qué se diferencia de un chatbot de menús.</li>
+      <li>Saber elegir entre la edición <strong>autoalojada (gratuita)</strong> y la edición <strong>Cloud</strong> de OpenLivery.</li>
+      <li>Desplegar la plataforma en un VPS con Docker, o acceder a la versión en la nube.</li>
+      <li>Configurar un agente de IA con <strong>identidad, contexto, integraciones y acciones</strong>.</li>
+      <li>Cargar una <strong>base de conocimiento</strong> (PDF y preguntas frecuentes) para que el bot responda con datos reales.</li>
+      <li>Conectar <strong>Google Calendar</strong> y <strong>Google Sheets</strong> para agendar y registrar reservas.</li>
+      <li>Vincular el número a la <strong>WhatsApp Business Cloud API</strong> de Meta con las cuatro credenciales correctas.</li>
+      <li>Probar, publicar y entregar el portal al cliente final.</li>
+      <li>Diagnosticar los fallos más habituales sin depender de nadie.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3>¿Para quién es este tutorial?</h3>
+    <p>Para personas sin conocimientos técnicos previos que necesitan poner en marcha un bot de atención al cliente
+      para un negocio local, o para agencias que quieren desplegar bots para varios clientes.</p>
+    <p>Está escrito para que puedas seguirlo aunque nunca hayas usado Docker, Meta for Developers ni una API.
+      Cuando aparece un término técnico, se explica antes de pedirte que lo uses.</p>
+  </div>
+
+  <div class="card">
+    <h3>Lo que necesitas antes de empezar</h3>
+    <div class="grid two">
+      <div>
+        <h4>Técnico</h4>
+        <ul>
+          <li>Un VPS Linux (Ubuntu 22.04 o superior) <em>solo si eliges la edición autoalojada</em>.</li>
+          <li>Un dominio o subdominio con certificado SSL (HTTPS público obligatorio).</li>
+          <li>Docker Engine y Docker Compose instalados en el servidor.</li>
+        </ul>
+      </div>
+      <div>
+        <h4>Cuentas</h4>
+        <ul>
+          <li>Meta Business Portfolio con la <strong>verificación de empresa</strong> completada.</li>
+          <li>Un método de pago válido asociado a la cuenta de WhatsApp.</li>
+          <li>Un número de teléfono <strong>exclusivo</strong>, que no esté en uso en las apps de WhatsApp.</li>
+          <li>Una cuenta de OpenRouter con saldo y una API Key.</li>
+        </ul>
+      </div>
+    </div>
+    <p class="note">Si eliges la edición Cloud de OpenLivery, puedes saltarte el VPS y el dominio propio: la plataforma te ofrece hosting administrado.</p>
+  </div>
+
+  <div class="card">
+    <h3>Cómo está organizado el tutorial</h3>
+    <div class="table-wrap">
+      <table>
+        <caption>Ocho pestañas, cada una con un propósito distinto.</caption>
+        <thead><tr><th>Pestaña</th><th>Qué encontrarás</th></tr></thead>
+        <tbody>
+          <tr><td><strong>INICIO</strong></td><td>Esta introducción, el mapa del tutorial y la ilustración animada.</td></tr>
+          <tr><td><strong>CONCEPTOS</strong></td><td>Qué es un agente, qué son los tokens, qué es un webhook, y las diferencias entre las ediciones de OpenLivery.</td></tr>
+          <tr><td><strong>PROCEDIMIENTO</strong></td><td>Todo el trabajo práctico, por fases: desde el VPS hasta el modo en vivo de Meta.</td></tr>
+          <tr><td><strong>PRÁCTICA</strong></td><td>Proyecto guiado «Barbería Nuclear», ejercicios y 21 preguntas de autoevaluación.</td></tr>
+          <tr><td><strong>ERRORES</strong></td><td>Diagnóstico de fallos frecuentes y cómo resolverlos.</td></tr>
+          <tr><td><strong>RESUMEN</strong></td><td>Chuleta final: flujo completo, números clave y costos.</td></tr>
+          <tr><td><strong>FUENTES</strong></td><td>Todos los enlaces del proyecto, organizados y copiables.</td></tr>
+          <tr><td><strong>CRÉDITOS</strong></td><td>Autoría, versión y fecha de creación del tutorial.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Ruta de aprendizaje recomendada</h3>
+    <ol class="flow">
+      <li><strong>Lee CONCEPTOS completo.</strong> Te dará el vocabulario que se usa en todo el resto del tutorial.</li>
+      <li><strong>Reúne los requisitos previos</strong> (Fase 0 del PROCEDIMIENTO) antes de tocar nada.</li>
+      <li><strong>Despliega o accede a la plataforma.</strong> No configures el agente hasta tener el sistema en marcha.</li>
+      <li><strong>Crea el agente y su conocimiento.</strong> Sin base de conocimiento, el bot inventará respuestas.</li>
+      <li><strong>Conecta Meta al final.</strong> Es el paso más delicado: hazlo cuando todo lo demás funcione.</li>
+      <li><strong>Prueba en el Playground y publica.</strong> Después entrega el portal al cliente.</li>
+    </ol>
+  </div>
+
+  <div class="warnbox">
+    <p style="margin:0;"><strong>Honestidad sobre las fuentes.</strong> Este tutorial reorganiza y explica el material de la
+      guía original, pero no añade procedimientos que esa guía no contenga. Los precios, planes y nombres de modelos
+      son los que aparecen en el material y pueden cambiar con el tiempo: verifícalos en los enlaces de la pestaña FUENTES.</p>
+  </div>
+
+  <div class="card tight">
+    <h3>Accesos rápidos</h3>
+    <div class="copybar">
+      <button class="btn" type="button" data-goto="conceptos">Ir a CONCEPTOS</button>
+      <button class="btn" type="button" data-goto="procedimiento">Ir a PROCEDIMIENTO</button>
+      <button class="btn" type="button" data-goto="practica">Ir a PRÁCTICA</button>
+      <button class="btn" type="button" data-goto="errores">Ir a ERRORES</button>
+      <button class="btn" type="button" data-goto="creditos">Ir a CRÉDITOS</button>
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================================
+     PANEL: CONCEPTOS
+==================================================================== -->
+<section class="panel" id="panel-conceptos" role="tabpanel" aria-labelledby="tab-conceptos" data-name="CONCEPTOS">
+  <h2 class="print-only">CONCEPTOS</h2>
+  <h1>Conceptos clave, explicados sin jerga</h1>
+  <p>Antes de tocar un servidor o un portal de Meta, necesitas entender seis ideas. Con ellas, el resto del tutorial se lee casi solo.</p>
+
+  <h2>1. De los menús rígidos a los agentes que entienden</h2>
+  <div class="card">
+    <p>La automatización de mensajería ha evolucionado desde sistemas rígidos basados en <strong>árboles de decisión</strong>
+      hacia <strong>agentes conversacionales impulsados por Modelos de Lenguaje de Gran Escala (LLM)</strong>.</p>
+    <div class="grid two">
+      <div>
+        <h4>Chatbot tradicional</h4>
+        <ul>
+          <li>Cada opción se programa a mano.</li>
+          <li>Si el usuario escribe algo distinto a lo previsto, se pierde.</li>
+          <li>Mantenerlo exige reescribir flujos constantemente.</li>
+        </ul>
+      </div>
+      <div>
+        <h4>Agente conversacional</h4>
+        <ul>
+          <li>Comprende la intención del usuario.</li>
+          <li>Analiza el contexto del negocio (precios, horarios, políticas).</li>
+          <li>Ejecuta acciones dinámicas: consultar un calendario, registrar una reserva.</li>
+        </ul>
+      </div>
+    </div>
+    <p><strong>Por qué importa:</strong> un agente no responde con un menú, responde con información de tu negocio.
+      Eso es exactamente lo que configuraremos en la Fase 4 del procedimiento.</p>
+  </div>
+
+  <h2>2. Vocabulario esencial</h2>
+
+  <details class="card" open>
+    <summary>Plataforma de orquestación (middleware)</summary>
+    <div class="details-body">
+      <p>Sistema central que conecta tres cosas: la API de mensajería (WhatsApp), el proveedor de Inteligencia Artificial
+        (OpenRouter) y las herramientas externas (calendarios, hojas de cálculo, CRM).</p>
+      <p><strong>En este tutorial ese middleware es OpenLivery.</strong> Tú no programas la conexión: la configuras desde un panel.</p>
+    </div>
+  </details>
+
+  <details class="card">
+    <summary>Tokens: la unidad de cobro de la IA</summary>
+    <div class="details-body">
+      <p>Los <strong>tokens</strong> son las unidades básicas de procesamiento de texto en un LLM. Equivalen aproximadamente
+        a una palabra o a un fragmento de palabra.</p>
+      <ul>
+        <li><strong>Tokens de entrada (input):</strong> instrucciones, contexto del negocio, documentos, historial del chat y mensaje del usuario.</li>
+        <li><strong>Tokens de salida (output):</strong> la respuesta que genera la IA.</li>
+      </ul>
+      <p>Entender esto es lo que te permitirá estimar el costo mensual de tu bot (lo verás en la Fase 3 del procedimiento).</p>
+    </div>
+  </details>
+
+  <details class="card">
+    <summary>API y Webhook: dos direcciones del mismo diálogo</summary>
+    <div class="details-body">
+      <p>La <strong>API</strong> permite enviar peticiones a un sistema remoto. El <strong>webhook</strong> es el mecanismo
+        inverso: recibe notificaciones HTTP en tiempo real cuando ocurre algo, por ejemplo, cuando un usuario envía un mensaje.</p>
+      <p>Cuando alguien escribe a tu WhatsApp, Meta no «avisa» a tu servidor por arte de magia: hace una petición HTTP
+        a la URL de webhook que tú registraste. Si esa URL falla o no está suscrita al campo correcto, los mensajes
+        simplemente no llegan.</p>
+    </div>
+  </details>
+
+  <details class="card">
+    <summary>Conexión oficial frente a conexión no oficial</summary>
+    <div class="details-body">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Aspecto</th><th>Oficial: WhatsApp Business Cloud API</th><th>No oficial: código QR (whatsmeow)</th></tr></thead>
+          <tbody>
+            <tr><td>Funcionamiento</td><td>Conexión directa a la infraestructura de Meta</td><td>Emula una sesión de WhatsApp Web</td></tr>
+            <tr><td>Estabilidad jurídica</td><td>Sí</td><td>No</td></tr>
+            <tr><td>Soporte para producción</td><td>Sí</td><td>No recomendado</td></tr>
+            <tr><td>Riesgo de bloqueo</td><td>Nulo por el canal</td><td>Alto: Meta puede sancionar o banear la cuenta</td></tr>
+            <tr><td>Uso recomendado</td><td>Producción y clientes reales</td><td>Pruebas rápidas en entornos locales</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p><strong>Regla práctica:</strong> usa el código QR solo para aprender; entrega siempre por la vía oficial.</p>
+    </div>
+  </details>
+
+  <h2>3. ¿Qué es OpenLivery?</h2>
+  <div class="card">
+    <p><strong>OpenLivery</strong> es una plataforma de código abierto y marca blanca (<em>white-label</em>) creada por
+      <strong>Andrés Sarrazola</strong>. Está diseñada para que agencias desplieguen bots de IA para múltiples clientes.</p>
+    <p>Su arquitectura es <strong>multitenant</strong>: una instalación aloja varias agencias, y cada agencia aloja varias
+      subcuentas de clientes, con los datos aislados entre sí. Es compatible con WhatsApp, widgets web e integraciones con
+      Instagram DM y Facebook Messenger.</p>
+    <p class="note">«Marca blanca» significa que tus clientes ven tu marca (tu logo, tus colores, tu dominio), no la de OpenLivery.</p>
+  </div>
+
+  <h2>4. Las dos ediciones: autoalojada y Cloud</h2>
+  <div class="table-wrap">
+    <table>
+      <caption>Comparativa de las dos formas de usar OpenLivery.</caption>
+      <thead><tr><th>Criterio</th><th>Autoalojada (Community / Self-Hosted)</th><th>Cloud (gestionada)</th></tr></thead>
+      <tbody>
+        <tr><td>Licencia / coste</td><td>Software libre bajo licencia <strong>MIT</strong>. Sin coste de licencia.</td><td>Suscripción mensual según plan.</td></tr>
+        <tr><td>Capacidad</td><td>Subcuentas de clientes e instancias <strong>ilimitadas</strong>.</td><td>Según el plan contratado.</td></tr>
+        <tr><td>Infraestructura</td><td>Tuya: VPS, contenedores, copias de seguridad de PostgreSQL, certificados SSL y credenciales de Meta.</td><td>Hosting administrado, actualizaciones automáticas, dominio propio con SSL.</td></tr>
+        <tr><td>Esfuerzo técnico</td><td>Alto: tú mantienes todo.</td><td>Bajo: despliegue en un clic.</td></tr>
+        <tr><td>Integraciones incluidas</td><td>Se configuran manualmente.</td><td>Preparadas para Google Calendar, Google Sheets, HubSpot y GoHighLevel.</td></tr>
+        <tr><td>Ideal para</td><td>Agencias con perfil técnico que quieren control y cero coste de licencia.</td><td>Agencias que quieren empezar rápido sin administrar servidores.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Planes de la edición Cloud</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Plan</th><th>Precio</th><th>Cuentas de clientes</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Launch</strong></td><td>$49 USD / mes</td><td>Hasta 5</td></tr>
+        <tr><td><strong>Growth</strong></td><td>$149 USD / mes</td><td>Hasta 20</td></tr>
+        <tr><td><strong>Unlimited</strong></td><td>$349 USD / mes</td><td>Ilimitadas, con soporte dedicado</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note">Los precios son los que figuran en el material de origen. Verifica siempre la página de precios oficial antes de contratar.</p>
+
+  <h2>5. Los cuatro pilares de un agente</h2>
+  <div class="grid two">
+    <div class="card tight">
+      <h4>1. Identidad</h4>
+      <p>Nombre del agente, rol, personalidad y tono de comunicación (tú o usted, formal o cercano).</p>
+    </div>
+    <div class="card tight">
+      <h4>2. Contexto</h4>
+      <p>Información del negocio: servicios, precios, horarios, políticas y las reglas de lo que debe y no debe hacer.</p>
+    </div>
+    <div class="card tight">
+      <h4>3. Integraciones</h4>
+      <p>Conexiones a sistemas externos: Google Calendar, Google Sheets, CRM u otras herramientas de consulta y registro.</p>
+    </div>
+    <div class="card tight">
+      <h4>4. Acciones</h4>
+      <p>Lo que el agente puede ejecutar de forma autónoma: agendar, escalar a un humano, cerrar el chat, hacer seguimiento.</p>
+    </div>
+  </div>
+
+  <h2>6. Glosario completo</h2>
+  <div class="card">
+    <dl>
+      <dt><strong>Agente conversacional</strong></dt><dd>Programa que mantiene una conversación comprendiendo intención y contexto, y que puede ejecutar acciones.</dd>
+      <dt><strong>LLM</strong></dt><dd>Modelo de Lenguaje de Gran Escala. El motor de IA que genera las respuestas.</dd>
+      <dt><strong>Prompt de sistema</strong></dt><dd>Instrucciones permanentes que definen el comportamiento del agente. Consume tokens de entrada en cada mensaje.</dd>
+      <dt><strong>Token de entrada / salida</strong></dt><dd>Texto que se envía al modelo / texto que el modelo devuelve. Se facturan por separado.</dd>
+      <dt><strong>API</strong></dt><dd>Interfaz que permite a un sistema enviar peticiones a otro.</dd>
+      <dt><strong>Webhook</strong></dt><dd>URL de tu sistema que recibe notificaciones HTTP en tiempo real desde otro sistema.</dd>
+      <dt><strong>URL de Callback</strong></dt><dd>La dirección concreta del webhook que registras en Meta.</dd>
+      <dt><strong>Verify Token</strong></dt><dd>Cadena secreta que Meta compara con la tuya para verificar que la URL de callback es tuya.</dd>
+      <dt><strong>App Secret</strong></dt><dd>Clave privada de la app de Meta. Se usa para validar la firma HMAC de cada mensaje recibido.</dd>
+      <dt><strong>HMAC</strong></dt><dd>Código de autenticación basado en hash. Si la firma no coincide, la petición se rechaza: así se evita que un atacante simule ser Meta.</dd>
+      <dt><strong>Phone Number ID</strong></dt><dd>Identificador único del número telefónico en el portal de Meta.</dd>
+      <dt><strong>WABA ID</strong></dt><dd>WhatsApp Business Account ID: identificador de la cuenta empresarial de WhatsApp.</dd>
+      <dt><strong>Permanent Access Token</strong></dt><dd>Token de larga duración generado desde un Usuario del Sistema. Sustituye al token temporal de 24 horas.</dd>
+      <dt><strong>OpenRouter</strong></dt><dd>Servicio que unifica el acceso a modelos de IA de distintos fabricantes con una sola API Key.</dd>
+      <dt><strong>Middleware</strong></dt><dd>Capa intermedia que conecta la mensajería, la IA y las herramientas externas.</dd>
+      <dt><strong>Multitenant</strong></dt><dd>Arquitectura en la que una instalación sirve a varias organizaciones manteniendo sus datos separados.</dd>
+      <dt><strong>White-label</strong></dt><dd>Marca blanca: personalización de la plataforma con la identidad de tu agencia.</dd>
+      <dt><strong>VPS</strong></dt><dd>Servidor privado virtual: una máquina Linux alquilada, con IP pública.</dd>
+      <dt><strong>Docker / Docker Compose</strong></dt><dd>Sistema de contenedores que empaqueta los servicios de OpenLivery y los arranca juntos con un comando.</dd>
+      <dt><strong>SSL / HTTPS</strong></dt><dd>Cifrado del tráfico web. Meta exige HTTPS público para los webhooks.</dd>
+      <dt><strong>Embeddings</strong></dt><dd>Representaciones vectoriales del texto que permiten buscar por significado, no solo por palabras exactas.</dd>
+      <dt><strong>Búsqueda semántica</strong></dt><dd>Recuperar información comparando significados, no coincidencias literales.</dd>
+      <dt><strong>Keyword fallback</strong></dt><dd>Mecanismo de respaldo por palabras clave cuando la búsqueda semántica no devuelve resultados útiles.</dd>
+      <dt><strong>MCP (Model Context Protocol)</strong></dt><dd>Protocolo para conectar el agente con herramientas y sistemas externos de forma estandarizada.</dd>
+      <dt><strong>SSRF</strong></dt><dd>Ataque que fuerza al servidor a realizar peticiones a destinos internos. OpenLivery protege las herramientas HTTP contra él.</dd>
+      <dt><strong>Live Mode (En vivo)</strong></dt><dd>Estado de la app de Meta que la habilita para recibir mensajes reales. En «Desarrollo» los mensajes no fluyen.</dd>
+      <dt><strong>Plantilla (template)</strong></dt><dd>Mensaje preaprobado por Meta. Obligatorio fuera de la ventana de 24 horas.</dd>
+      <dt><strong>Ventana de 24 horas</strong></dt><dd>Periodo tras un mensaje del usuario en el que el negocio puede responder con texto libre.</dd>
+    </dl>
+  </div>
+
+  <div class="card tight">
+    <button class="btn accent" type="button" data-goto="procedimiento">Entendido, pasar al PROCEDIMIENTO →</button>
+  </div>
+</section>
+
+<!-- ===================================================================
+     PANEL: PROCEDIMIENTO
+==================================================================== -->
+<section class="panel" id="panel-procedimiento" role="tabpanel" aria-labelledby="tab-procedimiento" data-name="PROCEDIMIENTO">
+  <h2 class="print-only">PROCEDIMIENTO</h2>
+  <h1>Procedimiento completo, fase por fase</h1>
+  <p>Doce fases ordenadas. No saltes ninguna: cada una prepara la siguiente. Si algo falla, cada paso incluye un bloque
+    desplegable con los problemas más probables.</p>
+
+  <!-- FASE 0 -->
+  <h2>Fase 0 · Requisitos previos</h2>
+
+  <article class="card step">
+    <h3><span class="num">0.1</span> Infraestructura de servidor</h3>
+    <p class="goal"><strong>Objetivo:</strong> tener una máquina donde alojar OpenLivery (solo si eliges la edición autoalojada).</p>
+    <ol>
+      <li><strong>Contrata un VPS Linux</strong> con Ubuntu 22.04 LTS o superior. <em>Motivo:</em> la guía está pensada para esa versión.
+        <em>Resultado esperado:</em> recibes por correo una IP pública y una contraseña o clave SSH.</li>
+      <li><strong>Instala Docker Engine y Docker Compose</strong> en ese servidor.
+        <em>Resultado esperado:</em> los comandos <code>docker</code> y <code>docker compose</code> responden sin error.</li>
+      <li><strong>Configura un dominio o subdominio</strong> con registros DNS apuntando a la IP del VPS.
+        <em>Resultado esperado:</em> el dominio resuelve a tu servidor.</li>
+      <li><strong>Habilita el certificado SSL</strong> para que el panel funcione por HTTPS.
+        <em>Motivo:</em> Meta exige HTTPS público obligatorio para los webhooks.
+        <em>Resultado esperado:</em> el candado de seguridad aparece en el navegador.</li>
+    </ol>
+    <details><summary>Si algo falla</summary><div class="details-body"><ul>
+      <li>Si el dominio no resuelve, espera a la propagación DNS (puede tardar horas) antes de continuar.</li>
+      <li>Sin HTTPS válido no podrás verificar el webhook en Meta: es un bloqueo total, no un aviso.</li>
+    </ul></div></details>
+  </article>
+
+  <article class="card step">
+    <h3><span class="num">0.2</span> Cuenta empresarial de Meta</h3>
+    <p class="goal"><strong>Objetivo:</strong> tener la cuenta que autorizará el envío de mensajes por la vía oficial.</p>
+    <ol>
+      <li><strong>Crea o accede a tu Meta Business Portfolio</strong> (antiguo Business Manager).
+        <em>Resultado esperado:</em> ves el panel de tu portafolio empresarial.</li>
+      <li><strong>Completa la Verificación de Empresa</strong> en <em>Ajustes › Información del negocio › Estado de verificación</em>.
+        <em>Motivo:</em> sin verificación no podrás operar la API en producción.
+        <em>Resultado esperado:</em> el estado figura como verificado.</li>
+      <li><strong>Registra un método de pago válido</strong> y asígnalo específicamente a la cuenta de WhatsApp dentro de Meta Business Suite.
+        <em>Resultado esperado:</em> la cuenta de WhatsApp muestra un método de pago activo.</li>
+      <li><strong>Consigue un número de teléfono exclusivo</strong> capaz de recibir SMS o llamadas de verificación, que
+        <strong>NO</strong> esté registrado actualmente en las aplicaciones móviles de WhatsApp o WhatsApp Business.
+        <em>Motivo:</em> un número en uso no puede registrarse en la Cloud API.</li>
+    </ol>
+    <div class="warnbox"><p style="margin:0;"><strong>Atención:</strong> si el número ya está activo en la app de WhatsApp, deberás
+      eliminarlo de la app antes de registrarlo, o usar el modo Coexistencia (Fase 9).</p></div>
+  </article>
+
+  <article class="card step">
+    <h3><span class="num">0.3</span> Proveedor de Inteligencia Artificial</h3>
+    <p class="goal"><strong>Objetivo:</strong> tener acceso a los modelos de lenguaje que responderán a los clientes.</p>
+    <ol>
+      <li><strong>Crea una cuenta en OpenRouter.</strong> <em>Resultado esperado:</em> accedes al panel de OpenRouter.</li>
+      <li><strong>Genera una API Key.</strong> <em>Resultado esperado:</em> obtienes una cadena de texto que deberás guardar en lugar seguro.</li>
+      <li><strong>Carga saldo.</strong> <em>Motivo:</em> sin saldo, el agente no responde aunque todo lo demás esté correcto.</li>
+    </ol>
+  </article>
+
+  <div class="card">
+    <h3>Checklist de la Fase 0</h3>
+    <label class="check"><input type="checkbox" data-key="f0-vps"><span>Tengo un VPS Ubuntu 22.04 o superior con IP pública.</span></label>
+    <label class="check"><input type="checkbox" data-key="f0-docker"><span>Docker Engine y Docker Compose están instalados y funcionan.</span></label>
+    <label class="check"><input type="checkbox" data-key="f0-dominio"><span>Tengo un dominio o subdominio apuntando al servidor.</span></label>
+    <label class="check"><input type="checkbox" data-key="f0-ssl"><span>El dominio funciona con HTTPS válido.</span></label>
+    <label class="check"><input type="checkbox" data-key="f0-meta"><span>Mi Meta Business Portfolio está verificada como empresa.</span></label>
+    <label class="check"><input type="checkbox" data-key="f0-pago"><span>Hay un método de pago asociado a la cuenta de WhatsApp.</span></label>
+    <label class="check"><input type="checkbox" data-key="f0-numero"><span>Tengo un número exclusivo que no está en uso en la app de WhatsApp.</span></label>
+    <label class="check"><input type="checkbox" data-key="f0-openrouter"><span>Tengo una API Key de OpenRouter con saldo cargado.</span></label>
+  </div>
+
+  <!-- FASE 1 -->
+  <h2>Fase 1 · Despliegue autoalojado con Docker</h2>
+  <p class="note">Si usas la edición Cloud, salta directamente a la Fase 2.</p>
+
+  <article class="card step">
+    <h3><span class="num">1.1</span> Clonar el repositorio oficial</h3>
+    <p class="goal"><strong>Objetivo:</strong> descargar el código de OpenLivery en tu servidor.</p>
+    <ol>
+      <li><strong>Conéctate al VPS por SSH.</strong> <em>Resultado esperado:</em> ves el símbolo del sistema de tu servidor.</li>
+      <li><strong>Ejecuta los dos comandos siguientes</strong>, uno detrás de otro.</li>
+    </ol>
+    <div class="codeblock">
+      <button class="copy" type="button" data-copy="code-clone">COPIAR</button>
+      <pre id="code-clone"><code>git clone https://github.com/sarrazola/openlivery.git
+cd openlivery</code></pre>
+    </div>
+    <p class="result"><strong>Resultado esperado:</strong> se crea la carpeta <code>openlivery</code> y tu terminal se sitúa dentro de ella.</p>
+    <details><summary>Si algo falla</summary><div class="details-body"><ul>
+      <li>Si <code>git</code> no existe, instálalo con el gestor de paquetes de tu distribución.</li>
+      <li>Si la descarga se corta, vuelve a ejecutar el comando: se reanudará o se repetirá sin problema.</li>
+    </ul></div></details>
+  </article>
+
+  <article class="card step">
+    <h3><span class="num">1.2</span> Generar las variables de entorno</h3>
+    <p class="goal"><strong>Objetivo:</strong> crear credenciales y claves secretas aleatorias en el archivo <code>.env.docker</code>.</p>
+    <ol>
+      <li><strong>Ejecuta el script automatizado</strong> desde la carpeta del proyecto.</li>
+    </ol>
+    <div class="codeblock">
+      <button class="copy" type="button" data-copy="code-env">COPIAR</button>
+      <pre id="code-env"><code>./scripts/generate-docker-env.sh</code></pre>
+    </div>
+    <p class="result"><strong>Resultado esperado:</strong> se crea el archivo <code>.env.docker</code> con las claves generadas.</p>
+    <p class="note">No compartas ese archivo ni lo subas a repositorios públicos: contiene secretos de tu instalación.</p>
+  </article>
+
+  <article class="card step">
+    <h3><span class="num">1.3</span> Entender la arquitectura de contenedores</h3>
+    <p class="goal"><strong>Objetivo:</strong> saber qué se va a ejecutar en tu servidor y para qué sirve cada pieza.</p>
+    <p>El archivo <code>docker-compose.yml</code> despliega estos microservicios:</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Servicio</th><th>Tecnología</th><th>Función</th></tr></thead>
+        <tbody>
+          <tr><td><code>apps/api</code></td><td>FastAPI (Python) con SQLAlchemy y Alembic</td><td>Backend: lógica de negocio, modelo de datos y orquestación de la IA.</td></tr>
+          <tr><td><code>apps/web</code></td><td>Next.js (React / TypeScript / Tailwind CSS)</td><td>Frontend: dashboard de agencia, portal de clientes, playground y widget web.</td></tr>
+          <tr><td><code>apps/whatsapp</code></td><td>Go (whatsmeow)</td><td>Puente de mensajería para la conexión por código QR.</td></tr>
+          <tr><td><code>postgres</code></td><td>PostgreSQL</td><td>Base de datos relacional donde vive toda la información.</td></tr>
+          <tr><td><code>caddy</code></td><td>Caddy</td><td>Proxy inverso que enruta el tráfico bajo un mismo origen HTTPS.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </article>
+
+  <article class="card step">
+    <h3><span class="num">1.4</span> Iniciar el stack de producción</h3>
+    <p class="goal"><strong>Objetivo:</strong> construir, arrancar los contenedores y ejecutar las migraciones automáticas.</p>
+    <ol>
+      <li><strong>Ejecuta el comando de arranque.</strong></li>
+    </ol>
+    <div class="codeblock">
+      <button class="copy" type="button" data-copy="code-up">COPIAR</button>
+      <pre id="code-up"><code>make up</code></pre>
+    </div>
+    <p>Si prefieres descargar imágenes preconstruidas desde GitHub Container Registry en lugar de construir:</p>
+    <div class="codeblock">
+      <button class="copy" type="button" data-copy="code-pull">COPIAR</button>
+      <pre id="code-pull"><code>make pull</code></pre>
+    </div>
+    <p class="result"><strong>Resultado esperado:</strong> el panel web queda accesible en tu dominio y la documentación interactiva
+      de la API (Swagger) en la ruta de documentación del backend.</p>
+    <div class="warnbox"><p style="margin:0;"><strong>Nota de fidelidad:</strong> en el material de origen las direcciones exactas del panel
+      y de Swagger aparecían redactadas. No se reproducen aquí para no inventar rutas: compruébalas en la guía de inicio rápido
+      del repositorio (enlace en la pestaña FUENTES).</p></div>
+    <details><summary>Si algo falla</summary><div class="details-body"><ul>
+      <li>Si <code>make</code> no existe en el sistema, instala las herramientas de compilación habituales de tu distribución.</li>
+      <li>Si algún contenedor se reinicia en bucle, revisa los registros del servicio afectado con <code>docker compose logs</code>.</li>
+      <li>Si el dominio muestra error de certificado, revisa que Caddy tenga acceso a los puertos 80 y 443.</li>
+    </ul></div></details>
+  </article>
+
+  <!-- FASE 2 -->
+  <h2>Fase 2 · Configuración de agencia y marca blanca</h2>
+
+  <article class="card step">
+    <h3><span class="num">2.1</span> Registro del propietario de la agencia</h3>
+    <p class="goal"><strong>Objetivo:</strong> crear la cuenta de propietario y cerrar los registros públicos.</p>
+    <ol>
+      <li><strong>Abre la interfaz web de OpenLivery por primera vez.</strong></li>
+      <li><strong>Completa el formulario inicial</strong> con el nombre de tu agencia, el correo del propietario y una contraseña.</li>
+    </ol>
+    <p class="result"><strong>Resultado esperado:</strong> accedes al panel de agencia. Al completar este registro,
+      <strong>la plataforma cierra automáticamente los registros públicos</strong> para proteger el aislamiento multitenant de tu instalación.</p>
+    <p class="note">Consecuencia práctica: si necesitas crear otra agencia más adelante, tendrás que hacerlo desde dentro, no desde el registro público.</p>
+  </article>
+
+  <article class="card step">
+    <h3><span class="num">2.2</span> Personalización de marca blanca</h3>
+    <p class="goal"><strong>Objetivo:</strong> que tus clientes vean tu marca y no la de OpenLivery.</p>
+    <ol>
+      <li><strong>Entra en Ajustes de la Agencia.</strong></li>
+      <li><strong>Define el nombre de la agencia</strong> y un identificador personalizado.</li>
+      <li><strong>Sube el logotipo</strong> y selecciona la paleta de colores corporativa.</li>
+      <li><strong>Configura un dominio personalizado</strong> para el portal de clientes creando un registro DNS tipo
+        <strong>CNAME</strong> que apunte a tu servidor. OpenLivery gestionará el certificado SSL de forma automática.</li>
+    </ol>
+    <p class="result"><strong>Resultado esperado:</strong> el portal de clientes se abre bajo tu dominio, con tu logo y tus colores.</p>
+    <details><summary>Si algo falla</summary><div class="details-body"><ul>
+      <li>Si el dominio personalizado no carga, verifica que el CNAME apunte exactamente al host indicado por la plataforma.</li>
+      <li>El certificado SSL automático puede tardar unos minutos tras crear el registro DNS.</li>
+    </ul></div></details>
+  </article>
+
+  <!-- FASE 3 -->
+  <h2>Fase 3 · Integración de OpenRouter y modelos de IA</h2>
+
+  <article class="card step">
+    <h3><span class="num">3.1</span> Configurar la API Key</h3>
+    <p class="goal"><strong>Objetivo:</strong> dar a OpenLivery acceso a los modelos de lenguaje.</p>
+    <ol>
+      <li><strong>Ve a Configuración › Proveedores de IA.</strong></li>
+      <li><strong>Pega tu API Key de OpenRouter</strong> y guarda los cambios.</li>
+    </ol>
+    <p class="result"><strong>Resultado esperado:</strong> la clave queda almacenada cifrada en la base de datos y la plataforma puede invocar modelos.</p>
+  </article>
+
+  <article class="card step">
+    <h3><span class="num">3.2</span> Selección del modelo de IA</h3>
+    <p class="goal"><strong>Objetivo:</strong> elegir un modelo adecuado para atención al cliente.</p>
+    <p>OpenLivery permite elegir cualquier modelo disponible en OpenRouter: OpenAI, Anthropic, Google, Meta o DeepSeek, entre otros.</p>
+    <p>Para bots de atención al cliente, el material recomienda <strong>GPT-4o Luna</strong>, por su equilibrio entre latencia
+      ultrarrápida, razonamiento preciso y costo reducido.</p>
+    <div class="warnbox"><p style="margin:0;"><strong>Verificación pendiente:</strong> el nombre y la tarifa de los modelos del catálogo
+      de OpenRouter cambian con frecuencia. Antes de contratar, confirma en el panel de OpenRouter que el modelo existe y a qué precio.</p></div>
+  </article>
+
+  <article class="card step">
+    <h3><span class="num">3.3</span> Entender la estructura de costos de tokens</h3>
+    <p class="goal"><strong>Objetivo:</strong> poder estimar cuánto costará el bot cada mes antes de venderlo.</p>
+    <p>Cada mensaje que envía el usuario procesa en la IA:</p>
+    <div class="codeblock">
+      <button class="copy" type="button" data-copy="code-tokens">COPIAR</button>
+      <pre id="code-tokens"><code>Tokens de Entrada = Prompt de Sistema + Contexto/PDF + Historial de Chat + Mensaje del Usuario</code></pre>
+    </div>
+    <p><strong>Ejemplo de cálculo mensual:</strong> para un negocio con <strong>6.000 mensajes al mes</strong>
+      (20 chats al día, 10 respuestas por chat), se procesan aproximadamente <strong>30 millones de tokens de entrada</strong>
+      y <strong>1,8 millones de tokens de salida</strong>. Con el modelo <strong>GPT-4o Luna</strong>, el costo total en
+      Inteligencia Artificial es de solo <strong>≈ $3,90 USD al mes</strong>.</p>
+    <p class="note">Este cálculo es el que figura en el material de origen y corresponde únicamente al costo de IA.
+      No incluye el costo de mensajería de Meta ni la infraestructura.</p>
+    <details><summary>¿Por qué los tokens de entrada cuestan más que los de salida?</summary><div class="details-body">
+      <p>Porque en cada interacción se reenvía todo el contexto: el prompt del sistema, la información del PDF y el historial
+        completo de la conversación. Aunque el usuario escriba «Hola», el modelo procesa todo ese bloque como entrada.</p>
+    </div></details>
+  </article>
+
+  <!-- FASE 4 -->
+  <h2>Fase 4 · Cliente y configuración del agente</h2>
+
+  <article class="card step">
+    <h3><span class="num">4.1</span> Crear el cliente (workspace de negocio)</h3>
+    <p class="goal"><strong>Objetivo:</strong> crear la subcuenta aislada del negocio para el que trabajarás.</p>
+    <ol>
+      <li><strong>En el menú principal de la agencia, selecciona Clientes › Nuevo Cliente.</strong></li>
+      <li><strong>Ingresa el nombre del negocio</strong> (por ejemplo, «Barbería Nuclear») y la categoría del sector comercial.</li>
+      <li><strong>Crea la subcuenta.</strong></li>
+    </ol>
+    <p class="result"><strong>Resultado esperado:</strong> el cliente aparece en tu listado y puedes entrar en su workspace.</p>
+  </article>
+
+  <article class="card step">
+    <h3><span class="num">4.2</span> Configurar los cuatro pilares del agente</h3>
+    <p class="goal"><strong>Objetivo:</strong> definir quién es el agente, qué sabe, con qué se conecta y qué puede hacer.</p>
+    <p>Entra al cliente creado y selecciona <strong>Agentes › Crear Agente</strong>.</p>
+
+    <h4>Pilar 1 · Identidad</h4>
+    <ul>
+      <li><strong>Nombre del agente:</strong> por ejemplo, «Felipe».</li>
+      <li><strong>Rol y personalidad:</strong> amable, profesional, ejecutivo.</li>
+      <li><strong>Tono de comunicación:</strong> configura el trato explícito (<em>tú</em> o <em>usted</em>) según el mercado.</li>
+    </ul>
+
+    <h4>Pilar 2 · Contexto</h4>
+    <ul>
+      <li><strong>Descripción del negocio:</strong> barbería masculina con servicios de corte y barba.</li>
+      <li><strong>Horarios de atención:</strong> lunes a viernes de 8:00 AM a 6:00 PM.</li>
+      <li><strong>Reglas obligatorias:</strong>
+        <ul>
+          <li><em>Lo que SIEMPRE debe hacer:</em> dar información de precios, consultar disponibilidad en el calendario y ofrecer agendar la cita.</li>
+          <li><em>Lo que NUNCA debe hacer:</em> inventar precios, agendar citas en horarios bloqueados o pedir el prefijo de país si no es necesario.</li>
+        </ul>
+      </li>
+    </ul>
+
+    <h4>Pilar 3 · Integraciones</h4>
+    <p>Habilita la integración con herramientas externas de consulta y registro (las conectarás en la Fase 6).</p>
+
+    <h4>Pilar 4 · Acciones operativas</h4>
+    <ul>
+      <li><strong>Escalamiento a humano:</strong> activa la detección automática de frustración o lenguaje ofensivo para pausar la IA.</li>
+      <li><strong>Cierre de conversaciones:</strong> activa el cierre automático de chats al cumplir el objetivo de agendamiento.</li>
+      <li><strong>Seguimiento por inactividad:</strong> configura mensajes automáticos si el usuario deja de responder.</li>
+    </ul>
+    <p class="result"><strong>Resultado esperado:</strong> el agente queda creado y asociado al cliente.</p>
+    <details><summary>Regla de oro del contexto</summary><div class="details-body">
+      <p>Todo lo que el agente «no debe hacer» debe estar escrito explícitamente. El modelo no adivina las políticas de tu negocio:
+        si no están en el contexto, no las respetará.</p>
+    </div></details>
+  </article>
+
+  <!-- FASE 5 -->
+  <h2>Fase 5 · Base de conocimiento y búsqueda semántica</h2>
+
+  <article class="card step">
+    <h3><span class="num">5.1</span> Cargar documentación</h3>
+    <p class="goal"><strong>Objetivo:</strong> que el agente responda con los datos reales del negocio.</p>
+    <ol>
+      <li><strong>Ingresa a la pestaña Conocimiento del agente.</strong></li>
+      <li><strong>Carga un PDF</strong> con la lista de precios, el menú o el catálogo.</li>
+      <li><strong>Añade pares de Preguntas Frecuentes (Q&amp;A)</strong> para las consultas más comunes.</li>
+    </ol>
+    <p class="result"><strong>Resultado esperado:</strong> el agente dispone de información verificable y deja de improvisar respuestas.</p>
+  </article>
+
+  <article class="card step">
+    <h3><span class="num">5.2</span> Cómo funciona la búsqueda semántica</h3>
+    <p class="goal"><strong>Objetivo:</strong> entender qué ocurre por dentro para saber qué esperar y qué revisar.</p>
+    <ul>
+      <li>OpenLivery genera <strong>vectores semánticos almacenados directamente en formato JSON</strong> en PostgreSQL.</li>
+      <li>No requiere extensiones complejas como <code>pgvector</code>.</li>
+      <li>El sistema realiza una búsqueda semántica por similitud y cuenta con un <strong>mecanismo de respaldo por palabras clave</strong> (<em>keyword fallback</em>).</li>
+      <li>Además, admite capacidades multimodales: <strong>reconocimiento de imágenes</strong> (visión) y <strong>transcripción de notas de voz</strong>.</li>
+    </ul>
+    <p><strong>Por qué importa:</strong> si la búsqueda semántica falla, el respaldo por palabras clave evita que el agente se quede
+      sin información; pero si el PDF no contiene el dato, ningún mecanismo lo inventará correctamente.</p>
+  </article>
+
+  <!-- FASE 6 -->
+  <h2>Fase 6 · Google Calendar y Google Sheets</h2>
+
+  <article class="card step">
+    <h3><span class="num">6.1</span> Conectar Google Calendar</h3>
+    <p class="goal"><strong>Objetivo:</strong> que el agente consulte huecos libres e inserte citas.</p>
+    <ol>
+      <li><strong>Ve a Integraciones › Google Calendar.</strong></li>
+      <li><strong>Autoriza la cuenta de Google del negocio.</strong></li>
+      <li><strong>Asigna el calendario específico</strong> donde el agente consultará la disponibilidad e insertará las citas.</li>
+    </ol>
+    <p class="result"><strong>Resultado esperado:</strong> la integración figura como conectada y con un calendario asignado.</p>
+    <details><summary>Si algo falla</summary><div class="details-body"><ul>
+      <li>Autoriza con la cuenta que realmente gestiona la agenda del negocio, no con tu cuenta personal de agencia.</li>
+      <li>Si el agente no ve huecos, revisa que el calendario asignado sea el correcto y no uno vacío.</li>
+    </ul></div></details>
+  </article>
+
+  <article class="card step">
+    <h3><span class="num">6.2</span> Conectar Google Sheets</h3>
+    <p class="goal"><strong>Objetivo:</strong> dejar un registro de cada reserva confirmada.</p>
+    <ol>
+      <li><strong>Ve a Integraciones › Google Sheets.</strong></li>
+      <li><strong>Crea o vincula una hoja de cálculo</strong> con las columnas:
+        <code>Fecha</code>, <code>Hora</code>, <code>Cliente</code>, <code>Teléfono</code>, <code>Servicio</code> y <code>Precio</code>.</li>
+    </ol>
+    <p class="result"><strong>Resultado esperado:</strong> cada vez que el agente confirme una reserva, escribirá una nueva fila automáticamente.</p>
+    <p class="note">Copia exactamente los nombres de columna: son los que el agente espera encontrar para escribir los datos en el lugar correcto.</p>
+  </article>
+
+  <!-- FASE 7 -->
+  <h2>Fase 7 · Aprovisionamiento automático con asistentes de código</h2>
+
+  <article class="card step">
+    <h3><span class="num">7.1</span> Generar un token de API y automatizar la configuración</h3>
+    <p class="goal"><strong>Objetivo:</strong> omitir la configuración manual en la interfaz usando un asistente de código.</p>
+    <ol>
+      <li><strong>Ve a Configuración › Agentes de IA › Generar Token de API.</strong></li>
+      <li><strong>Copia el token generado.</strong></li>
+      <li><strong>Abre tu asistente de código</strong> (Codex o Claude Code) y envíale el prompt que aparece a continuación,
+        sustituyendo el marcador del token por el tuyo.</li>
+    </ol>
+    <div class="codeblock">
+      <button class="copy" type="button" data-copy="code-prompt">COPIAR</button>
+      <pre id="code-prompt"><code>"Con esta información conéctate a OpenLivery [TOKEN_API]. Vas a ver un agente que se llama Felipe. Quiero que te inventes toda la información para una barbería de barrio, conectes mi cuenta de Google Calendar y crees una hoja de cálculo para registrar las reservas. Define los servicios y precios en dólares, establece el tono de comunicación en español y genera un PDF detallado de servicios para subirlo a la base de conocimiento."</code></pre>
+    </div>
+    <p class="result"><strong>Resultado esperado:</strong> el asistente ejecuta las llamadas a la API necesarias y configura el agente,
+      las herramientas y la base de conocimiento.</p>
+    <div class="errbox"><p style="margin:0;"><strong>Advertencia de seguridad:</strong> el token de API da acceso a tu instalación.
+      No lo pegues en servicios públicos ni lo compartas. Si sospechas que se ha filtrado, genera uno nuevo.</p></div>
+  </article>
+
+  <!-- FASE 8 -->
+  <h2>Fase 8 · Conexión oficial a WhatsApp Business Cloud API (Meta)</h2>
+
+  <div class="errbox">
+    <p style="margin:0;"><strong>Regla obligatoria de arquitectura:</strong> debes crear <strong>una aplicación en Meta por cada cliente
+      individual</strong> para evitar conflictos de webhook y descarte de mensajes.</p>
+  </div>
+
+  <div class="card">
+    <h3>Resumen del proceso de vinculación</h3>
+    <ol class="flow">
+      <li>Crear la app en Meta (tipo: Otro › Negocio).</li>
+      <li>Registrar el número y verificarlo mediante SMS o llamada.</li>
+      <li>Generar el <em>Permanent Access Token</em> desde un Usuario del Sistema administrador.</li>
+      <li>Extraer <em>Phone Number ID</em>, <em>WABA ID</em> y <em>App Secret</em>.</li>
+      <li>Guardar las credenciales en OpenLivery y configurar el webhook en Meta.</li>
+      <li>Cambiar el estado de la app de «Desarrollo» a «En vivo» (<em>Live Mode</em>).</li>
+    </ol>
+  </div>
+
+  <article class="card step">
+    <h3><span class="num">8.1</span> Crear la app en Meta for Developers</h3>
+    <p class="goal"><strong>Objetivo:</strong> tener la aplicación que representará a este cliente ante Meta.</p>
+    <ol>
+      <li><strong>Ingresa a Meta for Developers</strong> (enlace en FUENTES).</li>
+      <li><strong>Haz clic en Crear App</strong> › selecciona el tipo <strong>Otro</strong> › elige <strong>Negocio</strong>.</li>
+      <li><strong>Vincula la app a tu Portafolio Empresarial Verificado.</strong></li>
+      <li><strong>En el panel de la app, busca el producto WhatsApp</strong> y haz clic en <strong>Configurar</strong>.</li>
+    </ol>
+    <p class="result"><strong>Resultado esperado:</strong> accedes a la configuración de la API de WhatsApp dentro de tu app.</p>
+  </article>
+
+  <article class="card step">
+    <h3><span class="num">8.2</span> Registrar y verificar el número</h3>
+    <p class="goal"><strong>Objetivo:</strong> asociar el número del negocio a la API.</p>
+    <ol>
+      <li><strong>Ve a WhatsApp › Configuración de la API.</strong></li>
+      <li><strong>Haz clic en Añadir número de teléfono</strong> e ingresa el nombre de pantalla (<em>Display Name</em>,
+        por ejemplo «Barbería Nuclear»).</li>
+      <li><strong>Completa la verificación</strong> con el código enviado por SMS o llamada de voz.</li>
+      <li><strong>Copia y guarda</strong> los dos valores que se muestran en pantalla:
+        <ul>
+          <li><strong>Phone Number ID</strong></li>
+          <li><strong>WhatsApp Business Account ID (WABA ID)</strong></li>
+        </ul>
+      </li>
+    </ol>
+    <p class="result"><strong>Resultado esperado:</strong> el número figura como registrado y tienes ambos identificadores guardados.</p>
+  </article>
+
+  <article class="card step">
+    <h3><span class="num">8.3</span> Generar el token de acceso permanente</h3>
+    <p class="goal"><strong>Objetivo:</strong> obtener un token que no caduque en 24 horas.</p>
+    <div class="errbox"><p style="margin:0;"><strong>No utilices el token temporal de la pantalla de inicio:</strong> expira en 24 horas
+      y tu bot dejará de responder sin previo aviso.</p></div>
+    <ol>
+      <li><strong>Abre Meta Business Suite › Configuración del negocio › Usuarios › Usuarios del sistema.</strong></li>
+      <li><strong>Selecciona o crea un Usuario del Sistema Administrador.</strong></li>
+      <li><strong>Haz clic en Asignar activos › Apps</strong>, selecciona tu app de WhatsApp y marca <strong>Control Total</strong>.</li>
+      <li><strong>Haz clic en Generar nuevo token</strong>, selecciona la app y marca obligatoriamente los permisos (<em>scopes</em>):
+        <ul>
+          <li><code>whatsapp_business_messaging</code></li>
+          <li><code>whatsapp_business_management</code></li>
+        </ul>
+      </li>
+      <li><strong>Copia el token generado inmediatamente.</strong> Es el <em>Permanent Access Token</em>.</li>
+    </ol>
+    <p class="result"><strong>Resultado esperado:</strong> tienes un token de larga duración guardado en lugar seguro.</p>
+    <details><summary>Si algo falla</summary><div class="details-body"><ul>
+      <li>Si no ves la opción de asignar activos, comprueba que el Usuario del Sistema tenga rol de administrador.</li>
+      <li>Si el token no funciona, revisa que ambos <em>scopes</em> estén marcados: sin ellos, Meta rechaza las llamadas.</li>
+    </ul></div></details>
+  </article>
+
+  <article class="card step">
+    <h3><span class="num">8.4</span> Obtener el App Secret</h3>
+    <p class="goal"><strong>Objetivo:</strong> poder validar que los mensajes recibidos provienen realmente de Meta.</p>
+    <ol>
+      <li><strong>En el portal de desarrolladores, ve a Ajustes de la app › Básica.</strong></li>
+      <li><strong>Haz clic en Mostrar</strong> junto a <strong>Secreto de la aplicación (App Secret)</strong> y cópialo.</li>
+    </ol>
+    <p class="result"><strong>Resultado esperado:</strong> tienes el App Secret guardado.</p>
+    <p class="note">Este valor valida la firma digital HMAC de los mensajes recibidos. Si no coincide, las peticiones se rechazan.</p>
+  </article>
+
+  <article class="card step">
+    <h3><span class="num">8.5</span> Guardar credenciales y registrar el webhook</h3>
+    <p class="goal"><strong>Objetivo:</strong> unir Meta con OpenLivery para que los mensajes entren y salgan.</p>
+    <ol>
+      <li><strong>En OpenLivery, abre Clientes › [Tu Cliente] › Canales › WhatsApp API.</strong></li>
+      <li><strong>Ingresa los cuatro valores:</strong> Phone Number ID, WABA ID, Permanent Access Token y App Secret.</li>
+      <li><strong>Copia la URL de Callback y el Verify Token</strong> que genera OpenLivery.</li>
+      <li><strong>Regresa al portal de Meta</strong> y ve a WhatsApp › Configuración.</li>
+      <li><strong>Pega la URL de Callback y el Verify Token.</strong> Haz clic en <strong>Verificar y guardar</strong>.</li>
+      <li><strong>En la sección Webhooks, haz clic en Administrar</strong> y suscríbete obligatoriamente al campo <code>messages</code>.</li>
+      <li><strong>En la barra superior del portal de Meta, cambia el estado de la app de Desarrollo a En Vivo</strong> (<em>Live Mode</em>).</li>
+    </ol>
+    <p class="result"><strong>Resultado esperado:</strong> el canal figura como conectado y la app está en modo En vivo.</p>
+    <details><summary>Si algo falla</summary><div class="details-body"><ul>
+      <li><strong>La verificación del webhook falla:</strong> casi siempre es el certificado SSL o un Verify Token que no coincide exactamente.</li>
+      <li><strong>Los mensajes no llegan:</strong> revisa que estés suscrito al campo <code>messages</code> y que la app esté En vivo.</li>
+      <li><strong>Llegan al cliente equivocado:</strong> probablemente compartiste una misma app de Meta entre dos clientes.</li>
+    </ul></div></details>
+  </article>
+
+  <!-- FASE 9 -->
+  <h2>Fase 9 · Métodos alternativos y modo Coexistencia</h2>
+
+  <div class="grid two">
+    <div class="card tight">
+      <h3>Conexión por código QR (whatsmeow)</h3>
+      <p>Permite vincular una sesión escaneando un código QR desde OpenLivery.</p>
+      <p><strong>Útil para:</strong> pruebas rápidas en entornos locales.</p>
+      <p><strong>No recomendado para producción:</strong> existe riesgo de que Meta bloquee o banee la cuenta de WhatsApp.</p>
+    </div>
+    <div class="card tight">
+      <h3>Modo Coexistencia</h3>
+      <p>Permite conectar la API Oficial de WhatsApp Cloud a un número que <strong>mantiene activa la aplicación móvil
+        WhatsApp Business</strong>.</p>
+      <p><strong>Resultado:</strong> los mensajes entrantes se sincronizan simultáneamente en el teléfono del negocio y en la
+        bandeja de entrada centralizada de OpenLivery.</p>
+      <p><strong>Ideal para:</strong> negocios que no quieren perder la app móvil ni cambiar de número.</p>
+    </div>
+  </div>
+
+  <!-- FASE 10 -->
+  <h2>Fase 10 · Pruebas y depuración en el Playground</h2>
+
+  <article class="card step">
+    <h3><span class="num">10.1</span> Validar el agente antes de publicarlo</h3>
+    <p class="goal"><strong>Objetivo:</strong> comprobar que el agente responde, consulta el conocimiento y agenda correctamente.</p>
+    <ol>
+      <li><strong>Entra a la sección Playground de OpenLivery.</strong></li>
+      <li><strong>Simula conversaciones:</strong> envía mensajes de prueba como «¿Qué precio tiene el corte de barba?».</li>
+      <li><strong>Inspecciona las fuentes:</strong> en la pestaña de depuración verifica si el bot leyó el PDF de conocimiento o el contexto escrito.</li>
+      <li><strong>Prueba el bloqueo en calendario:</strong> bloquea un día en Google Calendar y pide una cita para esa fecha.
+        Confirma que el bot detecte la falta de disponibilidad y sugiera un horario alternativo.</li>
+      <li><strong>Prueba el agendamiento:</strong> confirma una cita para una fecha libre, entrega los datos y verifica que la cita
+        se cree en Google Calendar y que se escriba la fila en Google Sheets.</li>
+    </ol>
+    <p class="result"><strong>Resultado esperado:</strong> las cuatro pruebas se comportan como se describe.</p>
+    <details><summary>Si algo falla</summary><div class="details-body"><ul>
+      <li>Si el bot no usa el PDF, revisa que el documento se haya procesado correctamente en la pestaña Conocimiento.</li>
+      <li>Si agenda en horarios bloqueados, refuerza la regla en el contexto del agente.</li>
+      <li>Si no escribe en Sheets, comprueba que los nombres de las columnas coincidan exactamente.</li>
+    </ul></div></details>
+  </article>
+
+  <!-- FASE 11 -->
+  <h2>Fase 11 · Producción y bandeja unificada</h2>
+
+  <article class="card step">
+    <h3><span class="num">11.1</span> Entregar el portal al cliente final</h3>
+    <p class="goal"><strong>Objetivo:</strong> que el dueño del negocio pueda ver y gestionar su bot.</p>
+    <ol>
+      <li><strong>Haz clic en Publicar Portal del Cliente.</strong></li>
+      <li><strong>Crea un correo y una contraseña</strong> para el dueño del negocio.</li>
+    </ol>
+    <p class="result"><strong>Resultado esperado:</strong> el cliente accede al dashboard bajo tu dominio personalizado
+      o desde la aplicación móvil unificada de OpenLivery (Expo App).</p>
+  </article>
+
+  <article class="card step">
+    <h3><span class="num">11.2</span> Gestionar la bandeja de entrada (Inbox)</h3>
+    <p class="goal"><strong>Objetivo:</strong> supervisar las conversaciones e intervenir cuando haga falta.</p>
+    <ul>
+      <li><strong>Visualización:</strong> permite monitorear todas las conversaciones activas en tiempo real.</li>
+      <li><strong>Tomar Control (Human Takeover):</strong> si un operador humano desea intervenir, presiona «Tomar Control».
+        La IA se pausa inmediatamente y el operador responde directamente en el chat.</li>
+      <li><strong>Devolver Control:</strong> al finalizar la intervención, presiona «Devolver a la IA» para que el agente reanude la atención automática.</li>
+    </ul>
+  </article>
+
+  <!-- FASE 12 -->
+  <h2>Fase 12 · Seguridad y mantenimiento</h2>
+
+  <div class="card">
+    <h3>Principios de seguridad de la plataforma</h3>
+    <ul>
+      <li><strong>Cifrado en reposo:</strong> las claves API de OpenRouter y las sesiones de WhatsApp se almacenan cifradas en PostgreSQL.</li>
+      <li><strong>Aislamiento de datos:</strong> cada consulta a la base de datos está delimitada estrictamente por los identificadores <code>agency_id</code> y <code>client_id</code>.</li>
+    </ul>
+  </div>
+
+  <article class="card step">
+    <h3><span class="num">12.1</span> Programar copias de seguridad de la base de datos</h3>
+    <p class="goal"><strong>Objetivo:</strong> poder recuperar la información si algo se estropea.</p>
+    <ol>
+      <li><strong>Ejecuta el volcado de PostgreSQL</strong> de forma periódica.</li>
+    </ol>
+    <div class="codeblock">
+      <button class="copy" type="button" data-copy="code-backup">COPIAR</button>
+      <pre id="code-backup"><code>docker exec -t openlivery-postgres-1 pg_dumpall -U postgres &gt; backup.sql</code></pre>
+    </div>
+    <p class="result"><strong>Resultado esperado:</strong> se genera el archivo <code>backup.sql</code> con toda la base de datos.</p>
+    <p class="note">Guarda ese archivo fuera del servidor. Una copia de seguridad que vive en la misma máquina que puede fallar no es una copia de seguridad.</p>
+  </article>
+
+  <div class="card">
+    <h3>Checklist de puesta en marcha</h3>
+    <label class="check"><input type="checkbox" data-key="p-plataforma"><span>La plataforma está desplegada y accesible por HTTPS.</span></label>
+    <label class="check"><input type="checkbox" data-key="p-agencia"><span>La agencia está registrada y personalizada con mi marca.</span></label>
+    <label class="check"><input type="checkbox" data-key="p-openrouter"><span>La API Key de OpenRouter está guardada y con saldo.</span></label>
+    <label class="check"><input type="checkbox" data-key="p-cliente"><span>El cliente está creado como subcuenta.</span></label>
+    <label class="check"><input type="checkbox" data-key="p-agente"><span>El agente tiene identidad, contexto, integraciones y acciones configuradas.</span></label>
+    <label class="check"><input type="checkbox" data-key="p-conocimiento"><span>La base de conocimiento tiene el PDF y las preguntas frecuentes.</span></label>
+    <label class="check"><input type="checkbox" data-key="p-calendar"><span>Google Calendar está conectado y con el calendario correcto asignado.</span></label>
+    <label class="check"><input type="checkbox" data-key="p-sheets"><span>Google Sheets está vinculado con las seis columnas exactas.</span></label>
+    <label class="check"><input type="checkbox" data-key="p-meta-app"><span>Existe una app de Meta exclusiva para este cliente.</span></label>
+    <label class="check"><input type="checkbox" data-key="p-credenciales"><span>Las cuatro credenciales están guardadas en OpenLivery.</span></label>
+    <label class="check"><input type="checkbox" data-key="p-webhook"><span>El webhook está verificado y suscrito al campo messages.</span></label>
+    <label class="check"><input type="checkbox" data-key="p-live"><span>La app de Meta está en modo En vivo.</span></label>
+    <label class="check"><input type="checkbox" data-key="p-playground"><span>Las pruebas del Playground se han completado con éxito.</span></label>
+    <label class="check"><input type="checkbox" data-key="p-entrega"><span>El portal del cliente está publicado con sus credenciales.</span></label>
+  </div>
+
+  <div class="card tight">
+    <button class="btn accent" type="button" data-goto="practica">Continuar con la PRÁCTICA →</button>
+  </div>
+</section>
+
+<!-- ===================================================================
+     PANEL: PRÁCTICA
+==================================================================== -->
+<section class="panel" id="panel-practica" role="tabpanel" aria-labelledby="tab-practica" data-name="PRÁCTICA">
+  <h2 class="print-only">PRÁCTICA</h2>
+  <h1>Práctica: proyecto guiado, ejercicios y autoevaluación</h1>
+  <p>Aprender leyendo sirve de poco. Aquí aplicarás todo lo anterior a un caso concreto y comprobarás tu comprensión.</p>
+
+  <h2>Proyecto práctico completo: «Barbería Nuclear»</h2>
+  <div class="card">
+    <p><strong>Escenario:</strong> una barbería masculina de barrio quiere un bot que informe precios, consulte la agenda y
+      registre reservas. Tú eres la agencia que lo despliega.</p>
+    <ol class="flow">
+      <li><strong>Entorno:</strong> despliega OpenLivery en tu VPS o accede a tu cuenta Cloud.</li>
+      <li><strong>Cliente:</strong> crea el cliente «Barbería Nuclear» y configura al agente «Felipe» con tono cercano.</li>
+      <li><strong>Conocimiento:</strong> sube el PDF con la lista de servicios y precios en dólares.</li>
+      <li><strong>Integraciones:</strong> conecta Google Calendar para la agenda y Google Sheets para las reservas.</li>
+      <li><strong>WhatsApp:</strong> conecta el número oficial de la Cloud API registrando las cuatro credenciales en OpenLivery y validando el webhook en Meta.</li>
+      <li><strong>Validación:</strong> envía un mensaje desde tu celular real, agenda una cita y confirma que la entrada aparezca en Google Calendar y la fila en Google Sheets.</li>
+      <li><strong>Entrega:</strong> publica y entrega las credenciales del portal web al dueño de la barbería.</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h3>Checklist del proyecto</h3>
+    <label class="check"><input type="checkbox" data-key="pr-1"><span>1. Entorno operativo y accesible.</span></label>
+    <label class="check"><input type="checkbox" data-key="pr-2"><span>2. Cliente «Barbería Nuclear» creado.</span></label>
+    <label class="check"><input type="checkbox" data-key="pr-3"><span>3. Agente «Felipe» con identidad y contexto definidos.</span></label>
+    <label class="check"><input type="checkbox" data-key="pr-4"><span>4. PDF de servicios cargado en la base de conocimiento.</span></label>
+    <label class="check"><input type="checkbox" data-key="pr-5"><span>5. Google Calendar conectado con el calendario correcto.</span></label>
+    <label class="check"><input type="checkbox" data-key="pr-6"><span>6. Google Sheets vinculado con las seis columnas.</span></label>
+    <label class="check"><input type="checkbox" data-key="pr-7"><span>7. App de Meta creada exclusivamente para este cliente.</span></label>
+    <label class="check"><input type="checkbox" data-key="pr-8"><span>8. Cuatro credenciales guardadas y webhook verificado.</span></label>
+    <label class="check"><input type="checkbox" data-key="pr-9"><span>9. App de Meta en modo En vivo y suscrita a messages.</span></label>
+    <label class="check"><input type="checkbox" data-key="pr-10"><span>10. Prueba real desde un celular completada con éxito.</span></label>
+    <label class="check"><input type="checkbox" data-key="pr-11"><span>11. Portal del cliente publicado y entregado.</span></label>
+  </div>
+
+  <h2>Ejercicios guiados</h2>
+
+  <article class="card">
+    <h3>Ejercicio 1 · Distinguir las dos ediciones</h3>
+    <p><strong>Enunciado:</strong> una agencia quiere gestionar 30 clientes con presupuesto de licencia cero y tiene un
+      administrador de sistemas propio. ¿Qué edición le conviene y qué obligaciones asume?</p>
+    <details><summary>Ver solución</summary><div class="details-body">
+      <p><strong>Edición autoalojada.</strong> Es gratuita bajo licencia MIT y permite subcuentas e instancias ilimitadas.
+        A cambio, la agencia asume: administrar el VPS, actualizar los contenedores, hacer copias de seguridad de PostgreSQL
+        y configurar manualmente los certificados SSL y las credenciales de Meta.</p>
+      <p><em>Por qué no la Cloud:</em> el plan Unlimited, con clientes ilimitados, cuesta $349 USD al mes; con 30 clientes
+        y capacidad técnica interna, la autoalojada elimina ese costo recurrente.</p>
+    </div></details>
+  </article>
+
+  <article class="card">
+    <h3>Ejercicio 2 · Calcular el costo de IA</h3>
+    <p><strong>Enunciado:</strong> un negocio procesa 6.000 mensajes al mes. El material estima 30 millones de tokens de entrada
+      y 1,8 millones de salida. ¿Cuál es el costo aproximado en IA con el modelo recomendado?</p>
+    <details><summary>Ver solución</summary><div class="details-body">
+      <p><strong>≈ $3,90 USD al mes</strong>, según el ejemplo recogido en la guía. Recuerda que este importe cubre solo la IA:
+        hay que sumar el costo de mensajería de Meta y, si aplica, la infraestructura.</p>
+    </div></details>
+  </article>
+
+  <article class="card">
+    <h3>Ejercicio 3 · Elegir la credencial correcta</h3>
+    <p><strong>Enunciado:</strong> el bot dejó de responder a las 24 horas exactas de funcionar. ¿Qué credencial está mal y cómo se corrige?</p>
+    <details><summary>Ver solución</summary><div class="details-body">
+      <p><strong>Se usó el token temporal</strong> de la pantalla de inicio de Meta, que expira en 24 horas.
+        La solución es generar un <strong>Permanent Access Token</strong> desde Meta Business Suite › Configuración del negocio ›
+        Usuarios › Usuarios del sistema, asignando el activo de la app con Control Total y marcando los permisos
+        <code>whatsapp_business_messaging</code> y <code>whatsapp_business_management</code>.</p>
+    </div></details>
+  </article>
+
+  <article class="card">
+    <h3>Ejercicio 4 · Diagnosticar mensajes que no llegan</h3>
+    <p><strong>Enunciado:</strong> el webhook está verificado, pero los mensajes de los clientes no aparecen en OpenLivery.
+      Enumera al menos tres comprobaciones.</p>
+    <details><summary>Ver solución</summary><div class="details-body">
+      <ol>
+        <li>Que la app de Meta esté en modo <strong>En vivo</strong> y no en Desarrollo.</li>
+        <li>Que la suscripción al campo <strong><code>messages</code></strong> esté activa en los webhooks de Meta.</li>
+        <li>Que no se esté compartiendo una misma app de Meta entre dos clientes distintos: cada app tiene una única URL de callback.</li>
+        <li>Complementarias: certificado SSL válido y Verify Token coincidente.</li>
+      </ol>
+    </div></details>
+  </article>
+
+  <article class="card">
+    <h3>Ejercicio 5 · Corregir un agente que inventa precios</h3>
+    <p><strong>Enunciado:</strong> el agente responde precios que no existen. ¿Qué revisarías, en este orden?</p>
+    <details><summary>Ver solución</summary><div class="details-body">
+      <ol>
+        <li>Que el PDF de precios esté cargado y procesado en la pestaña Conocimiento.</li>
+        <li>Que la regla «NUNCA inventar precios» esté escrita explícitamente en el contexto del agente.</li>
+        <li>Que la prueba en el Playground, en la pestaña de depuración, muestre que el bot está leyendo el PDF como fuente.</li>
+      </ol>
+      <p>El contexto y el conocimiento son complementarios: uno prohíbe la conducta, el otro proporciona el dato correcto.</p>
+    </div></details>
+  </article>
+
+  <h2>Autoevaluación: 21 preguntas</h2>
+  <p>Intenta responder antes de desplegar cada respuesta. Están organizadas por nivel.</p>
+
+  <h3>Nivel básico</h3>
+
+  <details class="qa"><summary>1. ¿Qué es OpenLivery y cuál es su función principal dentro del ecosistema de automatización con IA?</summary>
+    <div class="details-body"><p>OpenLivery es una plataforma de código abierto y marca blanca (<em>white-label</em>) diseñada para que
+      agencias y empresas puedan construir, desplegar y administrar agentes de Inteligencia Artificial para clientes finales en
+      canales de mensajería como WhatsApp y widgets web. Su función principal es actuar como orquestador (<em>middleware</em>) que
+      conecta el número de WhatsApp con los modelos de lenguaje de IA (a través de OpenRouter) y herramientas externas (como
+      calendarios o bases de datos), ofreciendo además una bandeja de entrada unificada para intervención humana.</p></div>
+  </details>
+
+  <details class="qa"><summary>2. ¿Cuáles son las diferencias principales entre la versión Self-Hosted (autoalojada) y la versión Cloud de OpenLivery?</summary>
+    <div class="details-body"><p>La versión <strong>Self-Hosted</strong> es 100% gratuita bajo licencia MIT, se instala en un servidor
+      propio mediante Docker y permite crear cuentas de clientes ilimitadas, pero requiere que el usuario gestione la
+      infraestructura, las actualizaciones y configure las credenciales de WhatsApp manualmente. Por su parte, la versión
+      <strong>Cloud</strong> es una suscripción gestionada ($49 a $349 USD/mes) que incluye el alojamiento, actualizaciones
+      automáticas, conexión de WhatsApp en un clic y herramientas integradas como Google Calendar.</p></div>
+  </details>
+
+  <details class="qa"><summary>3. ¿Cuáles son los cuatro componentes o pilares fundamentales que definen a un agente en OpenLivery?</summary>
+    <div class="details-body">
+      <ol>
+        <li><strong>Identidad:</strong> nombre, rol, comportamiento y tono de comunicación del bot.</li>
+        <li><strong>Contexto:</strong> información del negocio (servicios, precios, horarios, políticas) y reglas de lo que debe y no debe hacer.</li>
+        <li><strong>Integraciones:</strong> conexiones a sistemas externos como Google Calendar, Google Sheets o CRM.</li>
+        <li><strong>Acciones:</strong> funciones autónomas como agendar citas, escalar a un humano, dar seguimiento o cerrar chats resueltos.</li>
+      </ol>
+    </div>
+  </details>
+
+  <details class="qa"><summary>4. ¿Qué es OpenRouter y por qué se utiliza como proveedor de IA en OpenLivery?</summary>
+    <div class="details-body"><p>OpenRouter es un servicio unificado de API que da acceso a una amplia variedad de modelos de
+      Inteligencia Artificial de diferentes empresas (OpenAI, Anthropic, Google, Meta, DeepSeek, entre otras) mediante una sola
+      clave de API. Se utiliza en OpenLivery porque permite elegir el modelo más conveniente para cada agente y registra de forma
+      transparente el costo exacto por cada respuesta generada.</p></div>
+  </details>
+
+  <details class="qa"><summary>5. ¿Qué diferencia existe entre conectar WhatsApp mediante código QR y mediante la API Oficial de Meta Cloud?</summary>
+    <div class="details-body"><p>La conexión por <strong>código QR</strong> vincula la sesión de un WhatsApp Web mediante librerías
+      como <em>whatsmeow</em>: es útil para pruebas rápidas, pero acarrea un alto riesgo de que Meta bloquee o banee el número por
+      uso no autorizado en producción. La <strong>API Oficial de Meta Cloud</strong> conecta el número directamente a la
+      infraestructura oficial de Meta, garantizando estabilidad jurídica, soporte para producción, acceso a plantillas y cero
+      riesgo de baneo por el canal, a cambio de pagar las tarifas oficiales por conversación impuestas por Meta.</p></div>
+  </details>
+
+  <details class="qa"><summary>6. ¿Cuántos mensajes o conversaciones gratuitas otorga Meta al mes para un número conectado a la API Cloud?</summary>
+    <div class="details-body"><p>Meta otorga a cada cuenta de WhatsApp Business un volumen de <strong>1.000 mensajes/conversaciones
+      gratuitas al mes</strong>. Todos los mensajes entrantes creados por los usuarios hacia el negocio son gratuitos, y los cobros
+      de Meta solo se aplican a las conversaciones enviadas una vez consumido ese cupo de 1.000 mensajes.</p></div>
+  </details>
+
+  <details class="qa"><summary>7. ¿Qué tipo de información se puede cargar en la base de conocimiento de un agente?</summary>
+    <div class="details-body"><p>Se pueden cargar textos manuales con descripciones del negocio, archivos en formato
+      <strong>PDF</strong> (listas de precios, catálogos, menús) y pares estructurados de <strong>preguntas y respuestas
+      frecuentes (Q&amp;A)</strong>. Toda esa información se procesa semánticamente para que el agente consulte los datos exactos
+      al responder.</p></div>
+  </details>
+
+  <h3>Nivel avanzado</h3>
+
+  <details class="qa"><summary>8. ¿Cuáles son las cuatro credenciales obligatorias que deben obtenerse en Meta para conectar la WhatsApp Business Cloud API?</summary>
+    <div class="details-body">
+      <ol>
+        <li><strong>Phone Number ID:</strong> identificador único del número telefónico asignado en el portal de desarrolladores de Meta.</li>
+        <li><strong>WhatsApp Business Account ID (WABA ID):</strong> identificador de la cuenta empresarial de WhatsApp.</li>
+        <li><strong>Permanent Access Token:</strong> token de larga duración generado desde un Usuario del Sistema en Meta Business Suite.</li>
+        <li><strong>App Secret:</strong> clave secreta de la aplicación de Meta, utilizada para validar la autenticidad de los webhooks mediante HMAC.</li>
+      </ol>
+    </div>
+  </details>
+
+  <details class="qa"><summary>9. ¿Cómo se genera el token de acceso permanente para evitar que la conexión venza en 24 horas?</summary>
+    <div class="details-body"><p>Se ingresa a <em>Meta Business Suite › Configuración › Usuarios › Usuarios del sistema</em>.
+      Se selecciona o crea un Usuario del Sistema de tipo Administrador, se le asigna el activo de la aplicación de WhatsApp con
+      permiso de <em>Control Total</em> y se hace clic en <em>Generar nuevo token</em>, seleccionando la app y marcando
+      obligatoriamente los permisos <code>whatsapp_business_messaging</code> y <code>whatsapp_business_management</code>.</p></div>
+  </details>
+
+  <details class="qa"><summary>10. ¿Cómo funciona la regla de la «Ventana de Servicio de 24 horas» de Meta y qué ocurre cuando expira?</summary>
+    <div class="details-body"><p>Cuando un cliente envía un mensaje al bot, se abre una <strong>ventana de servicio de 24 horas</strong>
+      en la que el negocio (o el bot de IA) puede responder de forma libre mediante texto sin restricciones de formato. Cada vez
+      que el cliente responde, la ventana se reinicia. Si pasan 24 horas sin que el usuario escriba, la ventana se cierra y el bot
+      ya no puede enviar texto libre: para volver a contactar al cliente debe enviarse obligatoriamente una <strong>plantilla de
+      mensaje aprobada previamente por Meta</strong>.</p></div>
+  </details>
+
+  <details class="qa"><summary>11. ¿En qué consiste la función de «Escalamiento a Humano» y cómo se activa en OpenLivery?</summary>
+    <div class="details-body"><p>Es la capacidad del sistema de pausar la respuesta automática del agente para permitir que un
+      operador tome el control manual de la conversación. Se activa de forma automática cuando el sistema detecta frustración,
+      lenguaje ofensivo o una mala experiencia, o de forma manual cuando un agente humano presiona el botón «Tomar control»
+      desde la bandeja de entrada centralizada.</p></div>
+  </details>
+
+  <details class="qa"><summary>12. ¿Por qué los tokens de entrada consumen la mayor parte del costo en los modelos conversacionales?</summary>
+    <div class="details-body"><p>Aunque el mensaje del usuario sea corto (por ejemplo, «Hola»), cada petición al modelo incluye el
+      mensaje <strong>más todo el contexto del agente</strong>: el prompt del sistema, la información extraída de los PDF y el
+      historial previo de la conversación. Como todo ese bloque debe procesarse en cada interacción como token de entrada, el
+      volumen de entrada es significativamente mayor que el de salida.</p></div>
+  </details>
+
+  <details class="qa"><summary>13. ¿En qué consiste el modo de conexión «Coexistencia» y cuál es su utilidad práctica?</summary>
+    <div class="details-body"><p>Permite vincular la API Oficial de WhatsApp Cloud a un número que <strong>ya tiene activa la
+      aplicación móvil WhatsApp Business</strong>. Los mensajes entrantes se reciben y se responden tanto en el teléfono del dueño
+      del negocio como en la plataforma de OpenLivery, lo que resulta ideal para negocios que no desean perder la aplicación móvil
+      ni cambiar de número telefónico.</p></div>
+  </details>
+
+  <details class="qa"><summary>14. ¿Cómo valida OpenLivery que los mensajes recibidos provienen realmente de Meta y no de un atacante?</summary>
+    <div class="details-body"><p>Utiliza la credencial <strong>App Secret</strong> guardada en la configuración del canal para calcular
+      el código de autenticación de mensajes basado en hash (HMAC) de cada solicitud entrante. Si la firma digital enviada por Meta
+      en el encabezado de la petición no coincide con la firma calculada con el App Secret en el servidor de OpenLivery, la
+      solicitud se rechaza de inmediato.</p></div>
+  </details>
+
+  <h3>Nivel pro</h3>
+
+  <details class="qa"><summary>15. ¿Cuál es la arquitectura de microservicios de OpenLivery y qué tecnologías utiliza en su stack autoalojado?</summary>
+    <div class="details-body">
+      <ol>
+        <li><strong><code>apps/api</code>:</strong> backend REST en FastAPI (Python) con SQLAlchemy y Alembic para la lógica de negocio, el modelo de datos y la orquestación de IA.</li>
+        <li><strong><code>apps/web</code>:</strong> frontend en Next.js (React / TypeScript / Tailwind CSS) que sirve el dashboard de agencia, el portal de clientes, el playground y el widget web.</li>
+        <li><strong><code>apps/whatsapp</code>:</strong> puente de mensajería en Go con la librería <em>whatsmeow</em> para conexiones por QR.</li>
+      </ol>
+      <p>La persistencia reside en <strong>PostgreSQL</strong> y la entrada de tráfico la gestiona el proxy inverso <strong>Caddy</strong>.</p>
+    </div>
+  </details>
+
+  <details class="qa"><summary>16. ¿Cómo se puede automatizar el aprovisionamiento completo de un agente sin usar la interfaz gráfica?</summary>
+    <div class="details-body"><p>Se genera un token de API de agente desde la configuración de OpenLivery y se le proporciona a un
+      asistente de código (Codex o Claude Code) junto con un prompt estructurado en lenguaje natural. El asistente se conecta a la
+      API de OpenLivery con ese token y ejecuta automáticamente las peticiones necesarias para definir nombre, tono y contexto del
+      negocio, crear y vincular calendarios de Google Calendar y hojas de Google Sheets, y generar e insertar el PDF con precios y
+      servicios en la base de conocimiento.</p></div>
+  </details>
+
+  <details class="qa"><summary>17. ¿Cómo se garantiza el aislamiento multitenant y la marca blanca en los portales de clientes?</summary>
+    <div class="details-body"><p>A nivel de base de datos, cada consulta e inserción está estrictamente delimitada por los
+      identificadores <code>agency_id</code> y <code>client_id</code>. Para la marca blanca, la agencia configura su logotipo,
+      colores e identificador, y los clientes acceden a su propio portal publicado en un dominio o subdominio personalizado mediante
+      un registro DNS CNAME que apunta al servidor de OpenLivery, con certificado SSL generado automáticamente y sin mostrar
+      ninguna mención a la marca OpenLivery.</p></div>
+  </details>
+
+  <details class="qa"><summary>18. ¿Por qué es obligatorio usar una aplicación de Meta independiente por cada cliente?</summary>
+    <div class="details-body"><p>Porque cada aplicación creada en Meta Developers tiene <strong>una única URL de Callback</strong>
+      configurada. Como OpenLivery asigna una URL de callback específica para cada canal de cliente, si se usa la misma app para dos
+      clientes todo el tráfico se dirigirá a la única URL registrada: los mensajes destinados al segundo cliente llegarían a la URL
+      del primero y serían descartados por discordancia de número, de modo que nunca serían respondidos.</p></div>
+  </details>
+
+  <details class="qa"><summary>19. ¿Cómo funciona el almacenamiento y la búsqueda de la base de conocimiento sin extensiones vectoriales?</summary>
+    <div class="details-body"><p>OpenLivery utiliza un enfoque de <strong>embeddings portátiles almacenados en formato JSON</strong>
+      directamente en la base de datos. Al realizar una consulta, el sistema evalúa los vectores JSON para la recuperación semántica
+      y, en caso de fallo o inconsistencia, ejecuta un mecanismo de respaldo automático basado en búsqueda por palabras clave
+      (<em>keyword fallback</em>), lo que simplifica el despliegue sin depender de extensiones como <code>pgvector</code>.</p></div>
+  </details>
+
+  <details class="qa"><summary>20. ¿Cómo influye la ubicación geográfica del destinatario en la estructura de costos de WhatsApp Cloud API?</summary>
+    <div class="details-body"><p>Meta establece tarifas por conversación muy desiguales según el país del número receptor. Para 5.000
+      mensajes de servicio, el costo en <strong>Colombia</strong> es de aproximadamente $4 USD, en <strong>México</strong> $42 USD,
+      en <strong>España y Chile</strong> $100 USD, en <strong>Argentina</strong> $130 USD, y <strong>Alemania</strong> tiene la tarifa
+      más alta del mercado. Para una agencia, esto implica que en países con tarifas bajas el costo de mensajería puede absorberse en
+      el paquete comercial, mientras que en países con tarifas altas debe trasladarse e informarse con transparencia al cliente final.</p></div>
+  </details>
+
+  <details class="qa"><summary>21. ¿Cómo se extienden las capacidades de un agente con el protocolo MCP y herramientas HTTP?</summary>
+    <div class="details-body"><p>OpenLivery permite registrar herramientas personalizadas mediante <strong>herramientas HTTP</strong>
+      (que ejecutan peticiones a endpoints REST externos con parámetros en URL o cuerpo, y cabeceras encriptadas protegidas contra
+      ataques SSRF) y mediante <strong>servidores MCP</strong> (a través de HTTP o Server-Sent Events). Al vincular un servidor MCP,
+      OpenLivery descubre dinámicamente las herramientas expuestas, lo que permite al agente consultar sistemas complejos, validar
+      conexiones antes de guardar y registrar el uso de cada herramienta en cada respuesta del usuario.</p></div>
+  </details>
+
+  <div class="card tight">
+    <button class="btn accent" type="button" data-goto="errores">Revisar la sección de ERRORES →</button>
+  </div>
+</section>
+
+<!-- ===================================================================
+     PANEL: ERRORES
+==================================================================== -->
+<section class="panel" id="panel-errores" role="tabpanel" aria-labelledby="tab-errores" data-name="ERRORES">
+  <h2 class="print-only">ERRORES</h2>
+  <h1>Diagnóstico y resolución de errores frecuentes</h1>
+  <p>La mayoría de los fallos de un bot de WhatsApp se concentran en cinco puntos: el token, el webhook, la suscripción
+    al campo <code>messages</code>, el estado de la app y el saldo de la IA. Empieza siempre por ahí.</p>
+
+  <h2>Tabla de diagnóstico rápido</h2>
+  <div class="table-wrap">
+    <table>
+      <caption>Si tu problema está en esta tabla, tienes la solución en menos de dos minutos.</caption>
+      <thead><tr><th>Síntoma</th><th>Causa más probable</th><th>Solución</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>«Authorization Error» o error de autorización</td>
+          <td>Token permanente expirado o falta el permiso <code>whatsapp_business_messaging</code></td>
+          <td>Genera un nuevo token permanente desde Usuarios del Sistema, marcando ambos <em>scopes</em>.</td>
+        </tr>
+        <tr>
+          <td>Falla la verificación del webhook</td>
+          <td>El certificado SSL del dominio no es válido o el Verify Token no coincide</td>
+          <td>Comprueba el HTTPS público y copia de nuevo el Verify Token desde OpenLivery, sin espacios.</td>
+        </tr>
+        <tr>
+          <td>Los mensajes no llegan a OpenLivery</td>
+          <td>App en modo Desarrollo, sin suscripción a <code>messages</code>, o app compartida entre clientes</td>
+          <td>Pasa la app a «En vivo», suscríbete al campo <code>messages</code> y usa una app por cliente.</td>
+        </tr>
+        <tr>
+          <td>El agente no responde</td>
+          <td>API Key de OpenRouter sin saldo, o agente inactivado en el panel</td>
+          <td>Recarga saldo en OpenRouter y verifica que el agente esté activo.</td>
+        </tr>
+        <tr>
+          <td>El agente inventa precios</td>
+          <td>PDF no procesado o regla «nunca inventar precios» ausente</td>
+          <td>Revisa la base de conocimiento y refuerza las reglas del contexto.</td>
+        </tr>
+        <tr>
+          <td>No se registran las reservas en Sheets</td>
+          <td>Nombres de columna distintos a los esperados</td>
+          <td>Usa exactamente <code>Fecha</code>, <code>Hora</code>, <code>Cliente</code>, <code>Teléfono</code>, <code>Servicio</code>, <code>Precio</code>.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Los seis errores que más tiempo hacen perder</h2>
+
+  <details class="card" open>
+    <summary>1. Usar el token temporal de 24 horas</summary>
+    <div class="details-body">
+      <p><strong>Qué pasa:</strong> todo funciona el primer día y al siguiente el bot deja de responder sin haber cambiado nada.</p>
+      <p><strong>Por qué ocurre:</strong> se copió el token de la pantalla de inicio de Meta, que caduca en 24 horas.</p>
+      <p><strong>Cómo se corrige:</strong> genera un <em>Permanent Access Token</em> desde Usuarios del Sistema, con Control Total
+        sobre la app y los dos permisos marcados.</p>
+    </div>
+  </details>
+
+  <details class="card">
+    <summary>2. Compartir una misma app de Meta entre dos clientes</summary>
+    <div class="details-body">
+      <p><strong>Qué pasa:</strong> el segundo cliente nunca recibe respuestas.</p>
+      <p><strong>Por qué ocurre:</strong> cada app de Meta tiene una única URL de callback. Si dos clientes comparten app, todo el
+        tráfico va a la URL del primero y los mensajes del segundo se descartan por discordancia de número.</p>
+      <p><strong>Cómo se corrige:</strong> crea siempre una app de Meta por cliente.</p>
+    </div>
+  </details>
+
+  <details class="card">
+    <summary>3. Olvidar la suscripción al campo «messages»</summary>
+    <div class="details-body">
+      <p><strong>Qué pasa:</strong> el webhook se verifica correctamente, pero no entra ningún mensaje.</p>
+      <p><strong>Por qué ocurre:</strong> la verificación solo comprueba la URL; la entrega real exige suscribirse a los campos
+        concretos que quieres recibir.</p>
+      <p><strong>Cómo se corrige:</strong> en la sección Webhooks de Meta, pulsa «Administrar» y suscribe el campo
+        <code>messages</code>.</p>
+    </div>
+  </details>
+
+  <details class="card">
+    <summary>4. Dejar la app en modo Desarrollo</summary>
+    <div class="details-body">
+      <p><strong>Qué pasa:</strong> las pruebas internas funcionan, pero los clientes reales no obtienen respuesta.</p>
+      <p><strong>Cómo se corrige:</strong> cambia el estado de la app a «En vivo» (<em>Live Mode</em>) en la barra superior del
+        portal de Meta. Es el último paso del proceso de vinculación y el más fácil de olvidar.</p>
+    </div>
+  </details>
+
+  <details class="card">
+    <summary>5. Registrar un número que ya está en la app de WhatsApp</summary>
+    <div class="details-body">
+      <p><strong>Qué pasa:</strong> Meta no permite completar el registro.</p>
+      <p><strong>Cómo se corrige:</strong> usa un número exclusivo que no esté registrado en las apps de WhatsApp o WhatsApp
+        Business, o utiliza el modo Coexistencia si necesitas mantener la app móvil activa.</p>
+    </div>
+  </details>
+
+  <details class="card">
+    <summary>6. Confiar en el código QR para producción</summary>
+    <div class="details-body">
+      <p><strong>Qué pasa:</strong> la cuenta puede ser bloqueada por Meta en cualquier momento.</p>
+      <p><strong>Cómo se corrige:</strong> usa el código QR solo para pruebas locales y migra a la API oficial antes de entregar
+        el bot a un cliente real.</p>
+    </div>
+  </details>
+
+  <h2>Errores de proceso (no técnicos)</h2>
+  <div class="card">
+    <ul>
+      <li><strong>Configurar el agente antes de tener la plataforma estable.</strong> Si el despliegue falla después, pierdes el trabajo de configuración.</li>
+      <li><strong>Conectar Meta el primer día.</strong> Es el paso más frágil: déjalo para el final, cuando todo lo demás ya funcione.</li>
+      <li><strong>No probar el bloqueo de calendario.</strong> Un bot que agenda sobre horarios ocupados genera un problema real con el cliente final.</li>
+      <li><strong>Entregar el portal sin credenciales al dueño del negocio.</strong> El objetivo del proyecto incluye la entrega, no solo la puesta en marcha.</li>
+      <li><strong>No programar copias de seguridad.</strong> Sin un volcado periódico de PostgreSQL, un fallo del servidor borra todo el trabajo de configuración.</li>
+    </ul>
+  </div>
+
+  <div class="warnbox">
+    <p style="margin:0;"><strong>Método de diagnóstico recomendado:</strong> ante cualquier fallo, comprueba en este orden —
+      (1) ¿la app está En vivo?, (2) ¿está suscrita a <code>messages</code>?, (3) ¿el token es permanente y tiene ambos permisos?,
+      (4) ¿el webhook está verificado con SSL válido?, (5) ¿hay saldo en OpenRouter? En el 90% de los casos el problema está en
+      los tres primeros puntos.</p>
+  </div>
+
+  <div class="card tight">
+    <button class="btn accent" type="button" data-goto="resumen">Ver el RESUMEN final →</button>
+  </div>
+</section>
+
+<!-- ===================================================================
+     PANEL: RESUMEN
+==================================================================== -->
+<section class="panel" id="panel-resumen" role="tabpanel" aria-labelledby="tab-resumen" data-name="RESUMEN">
+  <h2 class="print-only">RESUMEN</h2>
+  <h1>Resumen y chuleta de referencia</h1>
+
+  <h2>El flujo completo en diez pasos</h2>
+  <ol class="flow">
+    <li>Verificar requisitos: VPS con Docker, dominio con SSL, Meta Business verificado, número exclusivo y OpenRouter con saldo.</li>
+    <li>Desplegar OpenLivery (clonar, generar entorno, <code>make up</code>) o entrar en la edición Cloud.</li>
+    <li>Registrar la agencia y configurar la marca blanca con dominio propio por CNAME.</li>
+    <li>Guardar la API Key de OpenRouter y elegir el modelo de IA.</li>
+    <li>Crear el cliente y configurar los cuatro pilares del agente.</li>
+    <li>Cargar el PDF y las preguntas frecuentes en la base de conocimiento.</li>
+    <li>Conectar Google Calendar y Google Sheets.</li>
+    <li>Crear la app de Meta del cliente, obtener las cuatro credenciales y registrar el webhook con el campo <code>messages</code>.</li>
+    <li>Probar en el Playground y pasar la app a modo En vivo.</li>
+    <li>Publicar el portal, entregar credenciales al cliente y programar copias de seguridad.</li>
+  </ol>
+
+  <h2>Números y datos clave</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Concepto</th><th>Valor</th><th>Dónde se usa</th></tr></thead>
+      <tbody>
+        <tr><td>Credenciales de Meta</td><td>4 (Phone Number ID, WABA ID, Token permanente, App Secret)</td><td>Fase 8</td></tr>
+        <tr><td>Permisos del token</td><td><code>whatsapp_business_messaging</code> y <code>whatsapp_business_management</code></td><td>Fase 8.3</td></tr>
+        <tr><td>Campo del webhook</td><td><code>messages</code></td><td>Fase 8.5</td></tr>
+        <tr><td>Conversaciones gratuitas de Meta</td><td>1.000 al mes</td><td>Costos</td></tr>
+        <tr><td>Ventana de servicio</td><td>24 horas</td><td>Reglas de mensajería</td></tr>
+        <tr><td>Columnas de Google Sheets</td><td>6 (Fecha, Hora, Cliente, Teléfono, Servicio, Precio)</td><td>Fase 6.2</td></tr>
+        <tr><td>Servicios Docker</td><td>5 (api, web, whatsapp, postgres, caddy)</td><td>Fase 1.3</td></tr>
+        <tr><td>Apps de Meta por cliente</td><td>1</td><td>Regla de arquitectura</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Costos de mensajería de Meta</h2>
+  <div class="table-wrap">
+    <table>
+      <caption>Cálculo sobre un volumen de 5.000 mensajes de servicio salientes cobrados.</caption>
+      <thead><tr><th>País de destino</th><th>Costo aproximado</th></tr></thead>
+      <tbody>
+        <tr><td>Colombia</td><td>~$4 USD</td></tr>
+        <tr><td>México</td><td>~$42 USD</td></tr>
+        <tr><td>España / Chile</td><td>~$100 USD</td></tr>
+        <tr><td>Argentina</td><td>~$130 USD</td></tr>
+        <tr><td>Alemania</td><td>Tarifa más alta del mercado</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note">Puedes consultar el desglose exacto en la Calculadora de Costos de WhatsApp del sitio de OpenLivery (enlace en FUENTES).</p>
+
+  <h2>Comparativa de las dos ediciones, en una línea</h2>
+  <div class="grid two">
+    <div class="card tight">
+      <h4>Autoalojada</h4>
+      <p>Gratis (MIT), clientes ilimitados, control total… y toda la responsabilidad técnica es tuya.</p>
+    </div>
+    <div class="card tight">
+      <h4>Cloud</h4>
+      <p>De $49 a $349 USD/mes, despliegue en un clic, actualizaciones e integraciones listas… y menos control.</p>
+    </div>
+  </div>
+
+  <h2>Los cinco puntos críticos del proyecto</h2>
+  <div class="card">
+    <ol>
+      <li><strong>HTTPS público válido.</strong> Sin él, el webhook no se verifica.</li>
+      <li><strong>Token permanente con los dos permisos.</strong> Sin él, todo funciona un día y luego no.</li>
+      <li><strong>Una app de Meta por cliente.</strong> Sin esto, los mensajes se cruzan o se descartan.</li>
+      <li><strong>Base de conocimiento cargada.</strong> Sin ella, el agente inventa.</li>
+      <li><strong>Modo En vivo.</strong> Sin él, los clientes reales no obtienen respuesta.</li>
+    </ol>
+  </div>
+
+  <h2>Qué hacer después de entregar</h2>
+  <div class="card">
+    <ul>
+      <li>Supervisar la bandeja unificada durante la primera semana.</li>
+      <li>Usar «Tomar control» cuando detectes conversaciones que la IA no resuelve, y «Devolver a la IA» al terminar.</li>
+      <li>Revisar el consumo de tokens para ajustar el modelo si el costo crece.</li>
+      <li>Mantener el volcado de PostgreSQL al día y guardarlo fuera del servidor.</li>
+      <li>Renovar o revisar los tokens y las credenciales de Meta de forma periódica.</li>
+    </ul>
+  </div>
+
+  <div class="card tight">
+    <button class="btn accent" type="button" data-goto="fuentes">Ver todos los enlaces en FUENTES →</button>
+  </div>
+</section>
+
+<!-- ===================================================================
+     PANEL: FUENTES
+==================================================================== -->
+<section class="panel" id="panel-fuentes" role="tabpanel" aria-labelledby="tab-fuentes" data-name="FUENTES">
+  <h2 class="print-only">FUENTES</h2>
+  <h1>Fuentes y recursos</h1>
+
+  <div class="warnbox">
+    <p style="margin:0;"><strong>Nota de verificación:</strong> los enlaces se reproducen tal como aparecen en el material de origen.
+      No se ha comprobado su disponibilidad desde este entorno. Algunas direcciones del panel web y de la documentación Swagger
+      aparecían redactadas en la fuente y no se reproducen aquí para no inventar rutas.</p>
+  </div>
+
+  <h2>1. Repositorio principal y licencia</h2>
+  <div class="card">
+    <div class="copybar"><button class="btn" type="button" data-copy-list="#lista-repo">COPIAR TODOS LOS ENLACES</button></div>
+    <div id="lista-repo">
+      <div class="url-item">
+        <a href="https://github.com/sarrazola/openlivery" target="_blank" rel="noopener noreferrer">https://github.com/sarrazola/openlivery</a>
+        <button class="copy" type="button" data-copy-text="https://github.com/sarrazola/openlivery">COPIAR</button>
+      </div>
+      <p class="note" style="margin:6px 0 12px;">Repositorio oficial de OpenLivery, mantenido por Andrés Sarrazola. Desde aquí se clona el código y se despliega la plataforma con Docker.</p>
+      <div class="url-item">
+        <a href="https://github.com/sarrazola/openlivery/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">https://github.com/sarrazola/openlivery/blob/main/LICENSE</a>
+        <button class="copy" type="button" data-copy-text="https://github.com/sarrazola/openlivery/blob/main/LICENSE">COPIAR</button>
+      </div>
+      <p class="note" style="margin:6px 0 0;">Documento de la licencia MIT que rige el uso y la redistribución del código.</p>
+    </div>
+  </div>
+
+  <h2>2. Video tutorial</h2>
+  <div class="card">
+    <div id="lista-video">
+      <div class="url-item">
+        <a href="https://youtube.com/watch?v=BlP-j8LSlMA&amp;is=lfWNR39NyvCY5kAJ" target="_blank" rel="noopener noreferrer">https://youtube.com/watch?v=BlP-j8LSlMA&amp;is=lfWNR39NyvCY5kAJ</a>
+        <button class="copy" type="button" data-copy-text="https://youtube.com/watch?v=BlP-j8LSlMA&amp;is=lfWNR39NyvCY5kAJ">COPIAR</button>
+      </div>
+      <p class="note" style="margin:6px 0 0;">Video titulado «Dame 30 minutos y tendrás tu propio bot de WhatsApp con IA», que guía la creación, el entrenamiento y la conexión oficial de un agente conversacional para negocios locales.</p>
+    </div>
+  </div>
+
+  <h2>3. Sitio oficial y servicios Cloud</h2>
+  <div class="card">
+    <div class="copybar"><button class="btn" type="button" data-copy-list="#lista-web">COPIAR TODOS LOS ENLACES</button></div>
+    <div id="lista-web">
+      <div class="url-item"><a href="https://openlivery.com/" target="_blank" rel="noopener noreferrer">https://openlivery.com/</a><button class="copy" type="button" data-copy-text="https://openlivery.com/">COPIAR</button></div>
+      <div class="url-item"><a href="https://www.openlivery.com/es/precios" target="_blank" rel="noopener noreferrer">https://www.openlivery.com/es/precios</a><button class="copy" type="button" data-copy-text="https://www.openlivery.com/es/precios">COPIAR</button></div>
+      <div class="url-item"><a href="https://www.openlivery.com/es/calculadora-costos-whatsapp" target="_blank" rel="noopener noreferrer">https://www.openlivery.com/es/calculadora-costos-whatsapp</a><button class="copy" type="button" data-copy-text="https://www.openlivery.com/es/calculadora-costos-whatsapp">COPIAR</button></div>
+      <div class="url-item"><a href="https://app.openlivery.com/login" target="_blank" rel="noopener noreferrer">https://app.openlivery.com/login</a><button class="copy" type="button" data-copy-text="https://app.openlivery.com/login">COPIAR</button></div>
+      <div class="url-item"><a href="https://app.openlivery.com/start?plan=launch" target="_blank" rel="noopener noreferrer">https://app.openlivery.com/start?plan=launch</a><button class="copy" type="button" data-copy-text="https://app.openlivery.com/start?plan=launch">COPIAR</button></div>
+      <div class="url-item"><a href="https://app.openlivery.com/start?plan=growth" target="_blank" rel="noopener noreferrer">https://app.openlivery.com/start?plan=growth</a><button class="copy" type="button" data-copy-text="https://app.openlivery.com/start?plan=growth">COPIAR</button></div>
+      <div class="url-item"><a href="https://app.openlivery.com/start?plan=unlimited" target="_blank" rel="noopener noreferrer">https://app.openlivery.com/start?plan=unlimited</a><button class="copy" type="button" data-copy-text="https://app.openlivery.com/start?plan=unlimited">COPIAR</button></div>
+      <div class="url-item"><a href="https://www.openlivery.com/es/plataforma-agentes-ia-marca-blanca" target="_blank" rel="noopener noreferrer">https://www.openlivery.com/es/plataforma-agentes-ia-marca-blanca</a><button class="copy" type="button" data-copy-text="https://www.openlivery.com/es/plataforma-agentes-ia-marca-blanca">COPIAR</button></div>
+      <div class="url-item"><a href="https://www.openlivery.com/es/plataforma-agentes-ia-open-source" target="_blank" rel="noopener noreferrer">https://www.openlivery.com/es/plataforma-agentes-ia-open-source</a><button class="copy" type="button" data-copy-text="https://www.openlivery.com/es/plataforma-agentes-ia-open-source">COPIAR</button></div>
+      <div class="url-item"><a href="https://www.openlivery.com/es/agentes-ia-whatsapp-para-agencias" target="_blank" rel="noopener noreferrer">https://www.openlivery.com/es/agentes-ia-whatsapp-para-agencias</a><button class="copy" type="button" data-copy-text="https://www.openlivery.com/es/agentes-ia-whatsapp-para-agencias">COPIAR</button></div>
+      <div class="url-item"><a href="https://www.openlivery.com/es/una-agencia-tres-clientes" target="_blank" rel="noopener noreferrer">https://www.openlivery.com/es/una-agencia-tres-clientes</a><button class="copy" type="button" data-copy-text="https://www.openlivery.com/es/una-agencia-tres-clientes">COPIAR</button></div>
+      <div class="url-item"><a href="https://www.openlivery.com/es/agentes-ia-autoalojados" target="_blank" rel="noopener noreferrer">https://www.openlivery.com/es/agentes-ia-autoalojados</a><button class="copy" type="button" data-copy-text="https://www.openlivery.com/es/agentes-ia-autoalojados">COPIAR</button></div>
+      <div class="url-item"><a href="https://www.openlivery.com/es/soporte" target="_blank" rel="noopener noreferrer">https://www.openlivery.com/es/soporte</a><button class="copy" type="button" data-copy-text="https://www.openlivery.com/es/soporte">COPIAR</button></div>
+      <div class="url-item"><a href="https://blog.openlivery.com/" target="_blank" rel="noopener noreferrer">https://blog.openlivery.com/</a><button class="copy" type="button" data-copy-text="https://blog.openlivery.com/">COPIAR</button></div>
+      <div class="url-item"><a href="https://www.openlivery.com/es/openlivery-vs-lety" target="_blank" rel="noopener noreferrer">https://www.openlivery.com/es/openlivery-vs-lety</a><button class="copy" type="button" data-copy-text="https://www.openlivery.com/es/openlivery-vs-lety">COPIAR</button></div>
+      <div class="url-item"><a href="https://www.openlivery.com/es/privacidad" target="_blank" rel="noopener noreferrer">https://www.openlivery.com/es/privacidad</a><button class="copy" type="button" data-copy-text="https://www.openlivery.com/es/privacidad">COPIAR</button></div>
+      <div class="url-item"><a href="https://www.openlivery.com/es/terminos" target="_blank" rel="noopener noreferrer">https://www.openlivery.com/es/terminos</a><button class="copy" type="button" data-copy-text="https://www.openlivery.com/es/terminos">COPIAR</button></div>
+      <div class="url-item"><a href="https://www.openlivery.com/sitemap.xml" target="_blank" rel="noopener noreferrer">https://www.openlivery.com/sitemap.xml</a><button class="copy" type="button" data-copy-text="https://www.openlivery.com/sitemap.xml">COPIAR</button></div>
+      <div class="url-item"><a href="https://wa.me/573207344681" target="_blank" rel="noopener noreferrer">https://wa.me/573207344681</a><button class="copy" type="button" data-copy-text="https://wa.me/573207344681">COPIAR</button></div>
+    </div>
+  </div>
+
+  <h2>4. Documentación técnica en GitHub</h2>
+  <div class="card">
+    <div class="copybar"><button class="btn" type="button" data-copy-list="#lista-docs">COPIAR TODOS LOS ENLACES</button></div>
+    <div id="lista-docs">
+      <div class="url-item"><a href="https://github.com/sarrazola/openlivery/tree/main/docs" target="_blank" rel="noopener noreferrer">https://github.com/sarrazola/openlivery/tree/main/docs</a><button class="copy" type="button" data-copy-text="https://github.com/sarrazola/openlivery/tree/main/docs">COPIAR</button></div>
+      <div class="url-item"><a href="https://github.com/sarrazola/openlivery/blob/main/docs/en" target="_blank" rel="noopener noreferrer">https://github.com/sarrazola/openlivery/blob/main/docs/en</a><button class="copy" type="button" data-copy-text="https://github.com/sarrazola/openlivery/blob/main/docs/en">COPIAR</button></div>
+      <div class="url-item"><a href="https://github.com/sarrazola/openlivery/blob/main/docs/es" target="_blank" rel="noopener noreferrer">https://github.com/sarrazola/openlivery/blob/main/docs/es</a><button class="copy" type="button" data-copy-text="https://github.com/sarrazola/openlivery/blob/main/docs/es">COPIAR</button></div>
+      <div class="url-item"><a href="https://github.com/sarrazola/openlivery/blob/main/docs/en/getting-started.md" target="_blank" rel="noopener noreferrer">…/docs/en/getting-started.md</a><button class="copy" type="button" data-copy-text="https://github.com/sarrazola/openlivery/blob/main/docs/en/getting-started.md">COPIAR</button></div>
+      <div class="url-item"><a href="https://github.com/sarrazola/openlivery/blob/main/docs/en/configuration.md" target="_blank" rel="noopener noreferrer">…/docs/en/configuration.md</a><button class="copy" type="button" data-copy-text="https://github.com/sarrazola/openlivery/blob/main/docs/en/configuration.md">COPIAR</button></div>
+      <div class="url-item"><a href="https://github.com/sarrazola/openlivery/blob/main/docs/en/architecture.md" target="_blank" rel="noopener noreferrer">…/docs/en/architecture.md</a><button class="copy" type="button" data-copy-text="https://github.com/sarrazola/openlivery/blob/main/docs/en/architecture.md">COPIAR</button></div>
+      <div class="url-item"><a href="https://github.com/sarrazola/openlivery/blob/main/docs/en/self-hosting.md" target="_blank" rel="noopener noreferrer">…/docs/en/self-hosting.md</a><button class="copy" type="button" data-copy-text="https://github.com/sarrazola/openlivery/blob/main/docs/en/self-hosting.md">COPIAR</button></div>
+      <div class="url-item"><a href="https://github.com/sarrazola/openlivery/blob/main/docs/en/contributing.md" target="_blank" rel="noopener noreferrer">…/docs/en/contributing.md</a><button class="copy" type="button" data-copy-text="https://github.com/sarrazola/openlivery/blob/main/docs/en/contributing.md">COPIAR</button></div>
+      <div class="url-item"><a href="https://github.com/sarrazola/openlivery/blob/main/docs/en/push-notifications.md" target="_blank" rel="noopener noreferrer">…/docs/en/push-notifications.md</a><button class="copy" type="button" data-copy-text="https://github.com/sarrazola/openlivery/blob/main/docs/en/push-notifications.md">COPIAR</button></div>
+      <div class="url-item"><a href="https://github.com/sarrazola/openlivery/blob/main/docs/en/whatsapp-cloud-api.md" target="_blank" rel="noopener noreferrer">…/docs/en/whatsapp-cloud-api.md</a><button class="copy" type="button" data-copy-text="https://github.com/sarrazola/openlivery/blob/main/docs/en/whatsapp-cloud-api.md">COPIAR</button></div>
+      <div class="url-item"><a href="https://github.com/sarrazola/openlivery/blob/main/docs/es/whatsapp-cloud-api.md" target="_blank" rel="noopener noreferrer">…/docs/es/whatsapp-cloud-api.md</a><button class="copy" type="button" data-copy-text="https://github.com/sarrazola/openlivery/blob/main/docs/es/whatsapp-cloud-api.md">COPIAR</button></div>
+      <div class="url-item"><a href="https://github.com/sarrazola/openlivery/blob/main/docs/en/whatsapp.md" target="_blank" rel="noopener noreferrer">…/docs/en/whatsapp.md</a><button class="copy" type="button" data-copy-text="https://github.com/sarrazola/openlivery/blob/main/docs/en/whatsapp.md">COPIAR</button></div>
+      <div class="url-item"><a href="https://github.com/sarrazola/openlivery/blob/main/docs/en/web-widget.md" target="_blank" rel="noopener noreferrer">…/docs/en/web-widget.md</a><button class="copy" type="button" data-copy-text="https://github.com/sarrazola/openlivery/blob/main/docs/en/web-widget.md">COPIAR</button></div>
+      <div class="url-item"><a href="https://github.com/sarrazola/openlivery/blob/main/docs/en/agents.md" target="_blank" rel="noopener noreferrer">…/docs/en/agents.md</a><button class="copy" type="button" data-copy-text="https://github.com/sarrazola/openlivery/blob/main/docs/en/agents.md">COPIAR</button></div>
+      <div class="url-item"><a href="https://github.com/sarrazola/openlivery/blob/main/docs/en/knowledge-base.md" target="_blank" rel="noopener noreferrer">…/docs/en/knowledge-base.md</a><button class="copy" type="button" data-copy-text="https://github.com/sarrazola/openlivery/blob/main/docs/en/knowledge-base.md">COPIAR</button></div>
+      <div class="url-item"><a href="https://github.com/sarrazola/openlivery/blob/main/docs/en/ai-providers.md" target="_blank" rel="noopener noreferrer">…/docs/en/ai-providers.md</a><button class="copy" type="button" data-copy-text="https://github.com/sarrazola/openlivery/blob/main/docs/en/ai-providers.md">COPIAR</button></div>
+      <div class="url-item"><a href="https://github.com/sarrazola/openlivery/blob/main/docs/en/reports.md" target="_blank" rel="noopener noreferrer">…/docs/en/reports.md</a><button class="copy" type="button" data-copy-text="https://github.com/sarrazola/openlivery/blob/main/docs/en/reports.md">COPIAR</button></div>
+      <div class="url-item"><a href="https://github.com/sarrazola/openlivery/blob/main/docs/en/custom-tools.md" target="_blank" rel="noopener noreferrer">…/docs/en/custom-tools.md</a><button class="copy" type="button" data-copy-text="https://github.com/sarrazola/openlivery/blob/main/docs/en/custom-tools.md">COPIAR</button></div>
+      <div class="url-item"><a href="https://github.com/sarrazola/openlivery/blob/main/docs/en/inbox.md" target="_blank" rel="noopener noreferrer">…/docs/en/inbox.md</a><button class="copy" type="button" data-copy-text="https://github.com/sarrazola/openlivery/blob/main/docs/en/inbox.md">COPIAR</button></div>
+      <div class="url-item"><a href="https://github.com/sarrazola/openlivery/blob/main/docs/en/client-portal.md" target="_blank" rel="noopener noreferrer">…/docs/en/client-portal.md</a><button class="copy" type="button" data-copy-text="https://github.com/sarrazola/openlivery/blob/main/docs/en/client-portal.md">COPIAR</button></div>
+      <div class="url-item"><a href="https://github.com/sarrazola/openlivery/blob/main/docs/en/dashboard.md" target="_blank" rel="noopener noreferrer">…/docs/en/dashboard.md</a><button class="copy" type="button" data-copy-text="https://github.com/sarrazola/openlivery/blob/main/docs/en/dashboard.md">COPIAR</button></div>
+      <div class="url-item"><a href="https://github.com/sarrazola/openlivery/blob/main/apps/mobile/WHITELABEL.md" target="_blank" rel="noopener noreferrer">…/apps/mobile/WHITELABEL.md</a><button class="copy" type="button" data-copy-text="https://github.com/sarrazola/openlivery/blob/main/apps/mobile/WHITELABEL.md">COPIAR</button></div>
+    </div>
+    <p class="note">Los enlaces marcados con «…» se muestran abreviados por espacio, pero el botón COPIAR reproduce la URL completa.</p>
+  </div>
+
+  <h2>5. Plataformas externas requeridas</h2>
+  <div class="card">
+    <div id="lista-ext">
+      <div class="url-item">
+        <a href="https://developers.facebook.com/" target="_blank" rel="noopener noreferrer">https://developers.facebook.com/</a>
+        <button class="copy" type="button" data-copy-text="https://developers.facebook.com/">COPIAR</button>
+      </div>
+      <p class="note" style="margin:6px 0 0;">Portal oficial de Meta donde se crean las aplicaciones de negocio, se registran los números para la API de WhatsApp y se administran los tokens de acceso permanente.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Documento de partida de este tutorial</h3>
+    <p><em>Guía Maestra paso a paso: creación y despliegue integral de un bot de WhatsApp con Inteligencia Artificial y Meta Cloud API en OpenLivery.</em>
+      Material de origen utilizado como fuente única de contenido, sin aportaciones externas de datos, procedimientos ni resultados.</p>
+  </div>
+</section>
+
+<!-- ===================================================================
+     PANEL: CRÉDITOS
+==================================================================== -->
+<section class="panel" id="panel-creditos" role="tabpanel" aria-labelledby="tab-creditos" data-name="CRÉDITOS">
+  <h2 class="print-only">CRÉDITOS</h2>
+  <h1>Créditos</h1>
+
+  <div class="svg-host" id="svgCreditos" role="img"
+       aria-label="Ilustración animada: el agente de inteligencia artificial dentro de un teléfono móvil conversa con el usuario mientras la plataforma OpenLivery y Meta intercambian datos a través de líneas discontinuas en movimiento."></div>
+  <div class="svg-tools no-print">
+    <button class="btn" type="button" data-svg-toggle="svgCreditos">Pausar animación</button>
+  </div>
+  <p class="svg-cap">La ilustración representa el recorrido completo del tutorial: OpenLivery como puente entre el agente de IA y la API oficial de Meta, con el teléfono como punto de contacto con el cliente final.</p>
+
+  <div class="card" style="text-align:center;">
+    <span class="author-name">Rubén Sbarsky</span>
+    <p class="author-role">Autor del tutorial</p>
+    <p style="max-width:52ch;margin:0 auto;color:var(--muted);">
+      Tutorial elaborado a partir de la <em>Guía Maestra paso a paso</em> sobre creación y despliegue de un bot de WhatsApp
+      con Inteligencia Artificial y Meta Cloud API en OpenLivery.
+    </p>
+    <div class="kv" style="justify-content:center;">
+      <span>Versión V001</span>
+      <span>19/10/2026 — 09:11:13</span>
+      <span>8 secciones</span>
+      <span>Archivo único autónomo</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Información adicional</h3>
+    <ul>
+      <li><strong>Autoría del material de origen:</strong> la guía fuente recoge que OpenLivery es una plataforma creada por Andrés Sarrazola.</li>
+      <li><strong>Metodología de elaboración:</strong> planificación, construcción, auditoría adversarial, corrección y verificación estática.</li>
+      <li><strong>Alcance:</strong> el contenido se limita a lo documentado en la fuente. No se han añadido procedimientos, cifras ni resultados externos.</li>
+      <li><strong>Tecnología del entregable:</strong> un único archivo HTML con CSS, JavaScript y SVG integrados, sin dependencias externas ni recursos de red.</li>
+      <li><strong>Funcionamiento sin conexión:</strong> el archivo funciona al abrirse directamente en el navegador, también sin conexión a Internet.</li>
+      <li><strong>Fecha y hora de creación:</strong> valor fijo grabado en el archivo, no recalculado al abrirlo.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3>Limitaciones de verificación declaradas</h3>
+    <ul>
+      <li>Los enlaces de la pestaña FUENTES no se han comprobado desde el entorno de elaboración: se reproducen tal como figuran en el material.</li>
+      <li>La generación de un PDF y el diálogo de impresión dependen del navegador del usuario; no se han podido verificar de forma efectiva.</li>
+      <li>El mecanismo alternativo del SVG mediante imagen <code>data:</code> no se ha probado en todos los navegadores.</li>
+      <li>Las comprobaciones realizadas sobre el código han sido estáticas: revisión de estructura, referencias, identificadores y lógica.</li>
+    </ul>
+  </div>
+
+  <div class="card tight" style="text-align:center;">
+    <p class="note" style="margin:0;">Versión del documento: <strong>V001</strong> · 19/10/2026 — 09:11:13</p>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <p>Tutorial: <strong>Bot de WhatsApp con IA y Meta Cloud API en OpenLivery</strong> · Versión V001 · 19/10/2026 — 09:11:13</p>
+  <p>Autor: Rubén Sbarsky · Archivo HTML único, autónomo y sin dependencias externas.</p>
+</footer>
+
+<button id="toTop" type="button" aria-label="Volver arriba">↑</button>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<!-- ===== Plantilla única del SVG animado (se elimina del DOM al cargar) ===== -->
+<template id="svgTpl">
+<svg class="art" viewBox="0 0 420 260" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="__UID__bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1626"/>
+      <stop offset="1" stop-color="#122a44"/>
+    </linearGradient>
+    <linearGradient id="__UID__ph" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1e3a5f"/>
+      <stop offset="1" stop-color="#0f172a"/>
+    </linearGradient>
+    <radialGradient id="__UID__glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#38bdf8" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#38bdf8" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="__UID__soft" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="5"/>
+    </filter>
+  </defs>
+
+  <rect x="0" y="0" width="420" height="260" rx="18" fill="url(#__UID__bg)"/>
+
+  <circle cx="210" cy="130" r="96" fill="url(#__UID__glow)" opacity="0.55">
+    <animate attributeName="opacity" values="0.35;0.75;0.35" dur="5s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- Nodo izquierdo: OpenLivery -->
+  <g>
+    <rect x="16" y="96" width="98" height="56" rx="12" fill="#16233a" stroke="#38bdf8" stroke-opacity="0.55" stroke-width="1.5"/>
+    <circle cx="34" cy="116" r="6" fill="#38bdf8" opacity="0.85"/>
+    <text x="46" y="120" fill="#cbe9fa" font-size="11" font-weight="700">OpenLivery</text>
+    <rect x="30" y="132" width="70" height="4" rx="2" fill="#3b5578"/>
+    <rect x="30" y="140" width="48" height="4" rx="2" fill="#3b5578"/>
+  </g>
+
+  <!-- Nodo derecho: Meta -->
+  <g>
+    <rect x="306" y="96" width="98" height="56" rx="12" fill="#16233a" stroke="#38bdf8" stroke-opacity="0.55" stroke-width="1.5"/>
+    <circle cx="324" cy="116" r="6" fill="#38bdf8" opacity="0.85"/>
+    <text x="336" y="120" fill="#cbe9fa" font-size="11" font-weight="700">Meta API</text>
+    <rect x="320" y="132" width="70" height="4" rx="2" fill="#3b5578"/>
+    <rect x="320" y="140" width="48" height="4" rx="2" fill="#3b5578"/>
+  </g>
+
+  <!-- Conexiones animadas -->
+  <g stroke="#38bdf8" stroke-width="2" stroke-linecap="round" fill="none">
+    <line x1="118" y1="124" x2="156" y2="124" stroke-dasharray="7 7">
+      <animate attributeName="stroke-dashoffset" values="28;0" dur="1.1s" repeatCount="indefinite"/>
+    </line>
+    <line x1="264" y1="124" x2="302" y2="124" stroke-dasharray="7 7">
+      <animate attributeName="stroke-dashoffset" values="28;0" dur="1.1s" repeatCount="indefinite"/>
+    </line>
+  </g>
+  <polygon points="156,120 162,124 156,128" fill="#38bdf8"/>
+  <polygon points="302,120 308,124 302,128" fill="#38bdf8"/>
+
+  <!-- Teléfono -->
+  <g>
+    <rect x="160" y="40" width="100" height="186" rx="18" fill="url(#__UID__ph)" stroke="#2b4a70" stroke-width="1.5"/>
+    <rect x="168" y="52" width="84" height="152" rx="9" fill="#0a1220"/>
+
+    <!-- Barra superior del chat -->
+    <rect x="168" y="52" width="84" height="22" rx="9" fill="#1e3a5f"/>
+    <rect x="168" y="66" width="84" height="8" fill="#1e3a5f"/>
+    <circle cx="180" cy="63" r="6.5" fill="#38bdf8"/>
+    <circle cx="180" cy="63" r="6.5" fill="none" stroke="#38bdf8" stroke-width="1.5">
+      <animate attributeName="r" values="6.5;13;6.5" dur="2.6s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.85;0;0.85" dur="2.6s" repeatCount="indefinite"/>
+    </circle>
+    <rect x="191" y="59" width="36" height="4" rx="2" fill="#9fd7f5"/>
+    <rect x="191" y="66" width="22" height="3" rx="1.5" fill="#5f89ad"/>
+
+    <!-- Burbujas -->
+    <rect x="175" y="82" width="48" height="18" rx="9" fill="#1f3350" stroke="#2b4a70" stroke-width="1"/>
+    <rect x="181" y="88" width="30" height="3" rx="1.5" fill="#5f89ad"/>
+    <rect x="181" y="94" width="20" height="3" rx="1.5" fill="#3f5f80"/>
+
+    <rect x="199" y="106" width="48" height="18" rx="9" fill="#38bdf8" opacity="0.85">
+      <animate attributeName="opacity" values="0.85;1;0.85" dur="3.4s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="206" y="112" width="30" height="3" rx="1.5" fill="#0b3b55"/>
+    <rect x="206" y="118" width="18" height="3" rx="1.5" fill="#0b3b55"/>
+
+    <rect x="175" y="130" width="42" height="18" rx="9" fill="#1f3350" stroke="#2b4a70" stroke-width="1"/>
+    <rect x="181" y="136" width="26" height="3" rx="1.5" fill="#5f89ad"/>
+    <rect x="181" y="142" width="16" height="3" rx="1.5" fill="#3f5f80"/>
+
+    <!-- Indicador de escritura -->
+    <rect x="175" y="154" width="34" height="16" rx="8" fill="#1f3350" stroke="#2b4a70" stroke-width="1"/>
+    <circle cx="184" cy="162" r="2.6" fill="#38bdf8">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="1.4s" begin="0s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="192" cy="162" r="2.6" fill="#38bdf8">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="1.4s" begin="0.25s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="200" cy="162" r="2.6" fill="#38bdf8">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="1.4s" begin="0.5s" repeatCount="indefinite"/>
+    </circle>
+
+    <!-- Barra de entrada -->
+    <rect x="172" y="180" width="76" height="16" rx="8" fill="#16233a" stroke="#2b4a70" stroke-width="1"/>
+    <rect x="180" y="186" width="34" height="4" rx="2" fill="#3b5578"/>
+    <circle cx="240" cy="188" r="5" fill="#38bdf8" opacity="0.9"/>
+
+    <rect x="196" y="228" width="28" height="3" rx="1.5" fill="#475569"/>
+  </g>
+
+  <!-- Destellos -->
+  <circle cx="140" cy="58" r="3" fill="#38bdf8">
+    <animate attributeName="opacity" values="0.25;1;0.25" dur="3s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="286" cy="70" r="2.5" fill="#7dd3fc">
+    <animate attributeName="opacity" values="0.3;1;0.3" dur="3.6s" begin="0.7s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="292" cy="196" r="3" fill="#38bdf8">
+    <animate attributeName="opacity" values="0.25;1;0.25" dur="4s" begin="1.2s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="130" cy="198" r="2.5" fill="#7dd3fc">
+    <animate attributeName="opacity" values="0.3;1;0.3" dur="3.2s" begin="1.8s" repeatCount="indefinite"/>
+  </circle>
+</svg>
+</template>
+
+<script>
+(function(){
+"use strict";
+
+/* =========================================================
+   0. UTILIDADES
+   ========================================================= */
+var PREFIX = "olvTutV001_";
+var LS_OK = (function(){
+  try{ var k = PREFIX + "__t"; localStorage.setItem(k,"1"); localStorage.removeItem(k); return true; }
+  catch(e){ return false; }
+})();
+function lsGet(k,d){
+  if(!LS_OK) return d;
+  try{ var v = localStorage.getItem(PREFIX + k); return v === null ? d : v; }
+  catch(e){ return d; }
+}
+function lsSet(k,v){
+  if(!LS_OK) return false;
+  try{ localStorage.setItem(PREFIX + k, v); return true; }
+  catch(e){ return false; }
+}
+
+var toastEl = document.getElementById("toast");
+var toastTimer = null;
+function toast(msg){
+  if(!toastEl) return;
+  toastEl.textContent = msg;
+  toastEl.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ toastEl.classList.remove("show"); }, 4600);
+}
+
+/* =========================================================
+   1. TEMA CLARO / OSCURO
+   ========================================================= */
+var btnTheme = document.getElementById("btnTheme");
+function applyTheme(t){
+  document.documentElement.setAttribute("data-theme", t);
+  if(btnTheme){
+    btnTheme.textContent = (t === "dark") ? "Tema claro" : "Tema oscuro";
+    btnTheme.setAttribute("aria-label", (t === "dark") ? "Cambiar a tema claro" : "Cambiar a tema oscuro");
+  }
+  lsSet("theme", t);
+}
+applyTheme(lsGet("theme","dark"));
+if(btnTheme){
+  btnTheme.addEventListener("click", function(){
+    applyTheme(document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark");
+  });
+}
+
+/* =========================================================
+   2. TAMAÑO DE LETRA
+   ========================================================= */
+var STEPS = [85,92,100,108,116,125,135,145];
+var fsIdx = STEPS.indexOf(parseInt(lsGet("fs","100"),10));
+if(fsIdx < 0){ fsIdx = 2; }
+function applyFs(){
+  var v = STEPS[fsIdx];
+  document.documentElement.style.setProperty("--fs", (v/100).toFixed(2));
+  var lbl = document.getElementById("fontLabel");
+  if(lbl){ lbl.textContent = v + "%"; }
+  lsSet("fs", String(v));
+}
+applyFs();
+var bDown = document.getElementById("btnFontDown");
+var bUp = document.getElementById("btnFontUp");
+if(bDown){ bDown.addEventListener("click", function(){
+  if(fsIdx > 0){ fsIdx--; applyFs(); } else { toast("Este es el tamaño mínimo de letra."); }
+}); }
+if(bUp){ bUp.addEventListener("click", function(){
+  if(fsIdx < STEPS.length-1){ fsIdx++; applyFs(); } else { toast("Este es el tamaño máximo de letra."); }
+}); }
+
+/* =========================================================
+   3. PLANTILLA SVG ÚNICA
+   ========================================================= */
+var SVG_TEMPLATE = (function(){
+  var tpl = document.getElementById("svgTpl");
+  var html = tpl ? tpl.innerHTML.trim() : "";
+  if(tpl){ tpl.parentNode.removeChild(tpl); }  /* se elimina la fuente para evitar animaciones invisibles */
+  return html;
+})();
+
+/* Versión estática para el mecanismo alternativo (misma plantilla sin animaciones SMIL) */
+var SVG_STATIC = SVG_TEMPLATE
+  .replace(/<animate[^>]*\/>/g, "")
+  .replace(/<animateTransform[^>]*\/>/g, "");
+
+var svgSeq = 0;
+
+function mountSVG(host){
+  if(!host || !SVG_TEMPLATE){ return false; }
+  var existing = host.querySelector("svg");
+  if(existing){ return true; }
+  var uid = "sv" + (++svgSeq) + "_";
+  var markup = SVG_TEMPLATE.split("__UID__").join(uid);
+  host.innerHTML = markup;
+  var svg = host.querySelector("svg");
+  if(!svg){
+    mountStatic(host);
+    return false;
+  }
+  /* Si el entorno no soporta animaciones SMIL, se ofrece la versión estática */
+  if(typeof svg.pauseAnimations !== "function"){
+    mountStatic(host);
+    return false;
+  }
+  host.setAttribute("data-mounted","1");
+  return true;
+}
+
+function mountStatic(host){
+  try{
+    var uid = "st" + (++svgSeq) + "_";
+    var staticMarkup = SVG_STATIC.split("__UID__").join(uid);
+    var url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(staticMarkup);
+    var img = document.createElement("img");
+    img.src = url;
+    img.alt = "Ilustración del flujo entre OpenLivery, el agente de IA y Meta.";
+    host.innerHTML = "";
+    host.appendChild(img);
+    host.setAttribute("data-mounted","static");
+  }catch(e){
+    host.innerHTML = "";
+  }
+}
+
+/* Pausa / reanudación manual por instancia */
+document.addEventListener("click", function(e){
+  var btn = e.target.closest ? e.target.closest("[data-svg-toggle]") : null;
+  if(!btn){ return; }
+  var host = document.getElementById(btn.getAttribute("data-svg-toggle"));
+  if(!host){ return; }
+  var svg = host.querySelector("svg");
+  if(!svg){
+    mountSVG(host);
+    svg = host.querySelector("svg");
+  }
+  if(!svg || typeof svg.pauseAnimations !== "function"){
+    toast("Este entorno no permite pausar la animación. Se muestra la versión estática.");
+    mountStatic(host);
+    return;
+  }
+  var paused = svg.getAttribute("data-paused") === "1";
+  if(paused){
+    if(typeof svg.unpauseAnimations === "function"){ svg.unpauseAnimations(); }
+    svg.setAttribute("data-paused","0");
+    btn.textContent = "Pausar animación";
+  }else{
+    svg.pauseAnimations();
+    svg.setAttribute("data-paused","1");
+    btn.textContent = "Reanudar animación";
+  }
+});
+
+/* Reparación periódica de contenedores visibles vacíos */
+setInterval(function(){
+  var hosts = document.querySelectorAll(".svg-host");
+  Array.prototype.forEach.call(hosts, function(h){
+    var visible = h.getClientRects().length > 0;
+    if(visible && !h.querySelector("svg, img")){
+      mountSVG(h);
+    }
+  });
+}, 1800);
+
+/* =========================================================
+   4. PESTAÑAS
+   ========================================================= */
+var panels = {};
+Array.prototype.forEach.call(document.querySelectorAll(".panel"), function(p){
+  panels[p.id.replace("panel-","")] = p;
+});
+var tabs = Array.prototype.slice.call(document.querySelectorAll(".tab"));
+
+function labelTab(name){
+  var t = document.querySelector('.tab[data-tab="' + name + '"]');
+  return t ? t.textContent.trim() : name;
+}
+
+function showTab(name, opts){
+  opts = opts || {};
+  if(!panels[name]){ name = "inicio"; }
+
+  Object.keys(panels).forEach(function(k){
+    if(k === name){ panels[k].classList.add("is-active"); }
+    else{ panels[k].classList.remove("is-active"); }
+  });
+
+  tabs.forEach(function(t){
+    var on = t.getAttribute("data-tab") === name;
+    t.setAttribute("aria-selected", on ? "true" : "false");
+    t.setAttribute("tabindex", on ? "0" : "-1");
+  });
+
+  /* Montaje del SVG del panel activo */
+  Array.prototype.forEach.call(panels[name].querySelectorAll(".svg-host"), mountSVG);
+
+  lsSet("tab", name);
+
+  if(!opts.keepHash){
+    try{ history.replaceState(null, "", "#" + name); }catch(e){ /* file:// puede bloquearlo */ }
+  }
+  if(opts.scroll !== false){
+    window.scrollTo(0,0);
+  }
+}
+
+tabs.forEach(function(t, i){
+  t.addEventListener("click", function(){ showTab(t.getAttribute("data-tab")); });
+  t.addEventListener("keydown", function(e){
+    var n = null;
+    if(e.key === "ArrowRight"){ n = (i+1) % tabs.length; }
+    else if(e.key === "ArrowLeft"){ n = (i-1+tabs.length) % tabs.length; }
+    else if(e.key === "Home"){ n = 0; }
+    else if(e.key === "End"){ n = tabs.length-1; }
+    if(n !== null){
+      e.preventDefault();
+      tabs[n].focus();
+      showTab(tabs[n].getAttribute("data-tab"));
+    }
+  });
+});
+
+/* Navegación interna */
+document.addEventListener("click", function(e){
+  var g = e.target.closest ? e.target.closest("[data-goto]") : null;
+  if(g){
+    e.preventDefault();
+    showTab(g.getAttribute("data-goto"));
+  }
+});
+
+/* =========================================================
+   5. BÚSQUEDA INTERNA
+   ========================================================= */
+var INDEX = null;
+function norm(s){
+  try{
+    return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+  }catch(e){
+    return s.toLowerCase();
+  }
+}
+function buildIndex(){
+  INDEX = [];
+  Object.keys(panels).forEach(function(name){
+    var panel = panels[name];
+    var nodes = panel.querySelectorAll("h2,h3,h4,p,li,td,th,summary");
+    Array.prototype.forEach.call(nodes, function(el){
+      if(el.closest(".results")){ return; }
+      if(el.tagName === "LI" && el.querySelector("ul,ol")){ return; }
+      var txt = (el.textContent || "").replace(/\s+/g," ").trim();
+      if(txt.length < 20){ return; }
+      INDEX.push({ el: el, tab: name, text: txt, n: norm(txt) });
+    });
+  });
+}
+
+var qInput = document.getElementById("q");
+var resultsBox = document.getElementById("results");
+
+function renderResults(q){
+  if(!resultsBox){ return; }
+  var nq = norm(q);
+  if(nq.length < 2){
+    resultsBox.hidden = true;
+    resultsBox.textContent = "";
+    return;
+  }
+  if(!INDEX){ buildIndex(); }
+
+  var hits = [];
+  var seen = {};
+  for(var i=0; i<INDEX.length && hits.length<40; i++){
+    var it = INDEX[i];
+    var pos = it.n.indexOf(nq);
+    if(pos > -1){
+      var key = it.tab + "|" + it.text.slice(0,60);
+      if(seen[key]){ continue; }
+      seen[key] = 1;
+      hits.push({ it: it, pos: pos });
+    }
+  }
+
+  resultsBox.textContent = "";
+
+  if(!hits.length){
+    var empty = document.createElement("div");
+    empty.className = "res-empty";
+    empty.textContent = "Sin resultados para «" + q + "». Prueba con otra palabra.";
+    resultsBox.appendChild(empty);
+    resultsBox.hidden = false;
+    return;
+  }
+
+  hits.forEach(function(h){
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "res-item";
+
+    var meta = document.createElement("span");
+    meta.className = "res-tab";
+    meta.textContent = labelTab(h.it.tab);
+
+    var txt = document.createElement("span");
+    txt.className = "res-text";
+    var start = Math.max(0, h.pos - 45);
+    var snippet = (start > 0 ? "…" : "") + h.it.text.substr(start, 150) +
+                  (h.it.text.length > start + 150 ? "…" : "");
+    txt.textContent = snippet;
+
+    b.appendChild(meta);
+    b.appendChild(txt);
+
+    b.addEventListener("click", function(){
+      showTab(h.it.tab, { scroll:false });
+      resultsBox.hidden = true;
+      resultsBox.textContent = "";
+      if(qInput){ qInput.blur(); }
+      var det = h.it.el.closest("details");
+      if(det){ det.open = true; }
+      setTimeout(function(){
+        try{ h.it.el.scrollIntoView({ behavior:"smooth", block:"center" }); }
+        catch(err){ h.it.el.scrollIntoView(); }
+        h.it.el.classList.add("hit");
+        setTimeout(function(){ h.it.el.classList.remove("hit"); }, 2700);
+      }, 80);
+    });
+
+    resultsBox.appendChild(b);
+  });
+
+  resultsBox.hidden = false;
+}
+
+var searchTimer = null;
+if(qInput){
+  qInput.addEventListener("input", function(){
+    clearTimeout(searchTimer);
+    var v = qInput.value;
+    searchTimer = setTimeout(function(){ renderResults(v); }, 180);
+  });
+  qInput.addEventListener("keydown", function(e){
+    if(e.key === "Escape"){
+      if(resultsBox){ resultsBox.hidden = true; resultsBox.textContent = ""; }
+      qInput.blur();
+    }
+  });
+}
+document.addEventListener("click", function(e){
+  if(!resultsBox || resultsBox.hidden){ return; }
+  if(e.target.closest && e.target.closest(".search-wrap")){ return; }
+  resultsBox.hidden = true;
+});
+
+/* =========================================================
+   6. COPIAR AL PORTAPAPELES
+   ========================================================= */
+function flashBtn(btn, ok){
+  if(!btn){ return; }
+  var original = btn.getAttribute("data-label") || btn.textContent;
+  if(!btn.getAttribute("data-label")){ btn.setAttribute("data-label", original); }
+  btn.textContent = ok ? "COPIADO ✓" : "ERROR";
+  btn.classList.remove("done","fail");
+  btn.classList.add(ok ? "done" : "fail");
+  setTimeout(function(){
+    btn.textContent = btn.getAttribute("data-label");
+    btn.classList.remove("done","fail");
+  }, 1800);
+}
+
+function copyText(text, btn){
+  function ok(){ flashBtn(btn, true); toast("Texto copiado al portapapeles."); }
+  function fail(){
+    flashBtn(btn, false);
+    toast("No se pudo copiar automáticamente. Selecciona el texto y usa Ctrl+C o Cmd+C.");
+  }
+  function legacy(){
+    try{
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly","");
+      ta.style.position = "fixed";
+      ta.style.top = "-1000px";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, ta.value.length);
+      var res = document.execCommand("copy");
+      document.body.removeChild(ta);
+      if(res){ ok(); } else { fail(); }
+    }catch(e){ fail(); }
+  }
+  if(navigator.clipboard && window.isSecureContext){
+    navigator.clipboard.writeText(text).then(ok).catch(legacy);
+  }else{
+    legacy();
+  }
+}
+
+document.addEventListener("click", function(e){
+  var btn = e.target.closest ? e.target.closest("[data-copy],[data-copy-text],[data-copy-list]") : null;
+  if(!btn){ return; }
+
+  if(btn.hasAttribute("data-copy-text")){
+    copyText(btn.getAttribute("data-copy-text"), btn);
+    return;
+  }
+  if(btn.hasAttribute("data-copy-list")){
+    var sel = btn.getAttribute("data-copy-list");
+    var nodes = document.querySelectorAll(sel + " a[href]");
+    var arr = [];
+    Array.prototype.forEach.call(nodes, function(a){
+      var href = a.getAttribute("href");
+      if(href){ arr.push(href); }
+    });
+    if(!arr.length){ toast("No se encontraron enlaces en este bloque."); return; }
+    copyText(arr.join("\n"), btn);
+    return;
+  }
+  var id = btn.getAttribute("data-copy");
+  var el = document.getElementById(id);
+  if(!el){ toast("No se encontró el contenido que se quería copiar."); return; }
+  copyText(el.textContent.replace(/^\s+|\s+$/g,""), btn);
+});
+
+/* =========================================================
+   7. LISTAS DE COMPROBACIÓN CON PERSISTENCIA
+   ========================================================= */
+Array.prototype.forEach.call(document.querySelectorAll("input[type=checkbox][data-key]"), function(cb){
+  var key = "chk_" + cb.getAttribute("data-key");
+  cb.checked = (lsGet(key,"0") === "1");
+  cb.addEventListener("change", function(){
+    lsSet(key, cb.checked ? "1" : "0");
+  });
+});
+
+/* =========================================================
+   8. PROGRESO DE LECTURA Y VOLVER ARRIBA
+   ========================================================= */
+var progressBar = document.getElementById("progressBar");
+var toTop = document.getElementById("toTop");
+
+function updateProgress(){
+  var doc = document.documentElement;
+  var scrollTop = window.pageYOffset || doc.scrollTop || 0;
+  var max = (doc.scrollHeight - doc.clientHeight);
+  var pct = max > 0 ? Math.min(100, Math.max(0, (scrollTop / max) * 100)) : 0;
+  if(progressBar){ progressBar.style.width = pct.toFixed(1) + "%"; }
+  if(toTop){ toTop.classList.toggle("show", scrollTop > 420); }
+}
+window.addEventListener("scroll", updateProgress, { passive:true });
+window.addEventListener("resize", updateProgress);
+
+if(toTop){
+  toTop.addEventListener("click", function(){
+    try{ window.scrollTo({ top:0, behavior:"smooth" }); }
+    catch(e){ window.scrollTo(0,0); }
+  });
+}
+
+/* =========================================================
+   9. IMPRESIÓN / PDF
+   ========================================================= */
+var openedForPrint = [];
+
+function preparePrint(){
+  /* 1. Montar todos los SVG, incluidas pestañas nunca visitadas */
+  Array.prototype.forEach.call(document.querySelectorAll(".svg-host"), mountSVG);
+  /* 2. Colocar las ilustraciones en estado visual completo (pausa en su estado base, siempre visible) */
+  Array.prototype.forEach.call(document.querySelectorAll("svg"), function(s){
+    try{ if(typeof s.pauseAnimations === "function"){ s.pauseAnimations(); } }catch(e){}
+  });
+  /* 3. Abrir temporalmente los desplegables y recordar cuáles estaban cerrados */
+  openedForPrint = [];
+  Array.prototype.forEach.call(document.querySelectorAll("details"), function(d){
+    if(!d.open){ d.open = true; openedForPrint.push(d); }
+  });
+}
+
+function restorePrint(){
+  /* 4. Restaurar el estado anterior y reanudar animaciones */
+  openedForPrint.forEach(function(d){ d.open = false; });
+  openedForPrint = [];
+  Array.prototype.forEach.call(document.querySelectorAll("svg"), function(s){
+    try{
+      if(typeof s.unpauseAnimations === "function" && s.getAttribute("data-paused") !== "1"){
+        s.unpauseAnimations();
+      }
+    }catch(e){}
+  });
+}
+
+window.addEventListener("beforeprint", function(){
+  if(!openedForPrint.length){ preparePrint(); }
+});
+window.addEventListener("afterprint", function(){
+  restorePrint();
+});
+
+var btnPrint = document.getElementById("btnPrint");
+if(btnPrint){
+  btnPrint.addEventListener("click", function(){
+    preparePrint();
+    var finished = false;
+    function finish(){
+      if(finished){ return; }
+      finished = true;
+      restorePrint();
+    }
+    window.addEventListener("afterprint", finish, { once:true });
+    try{
+      window.print();
+    }catch(err){
+      finish();
+      toast("Abre este archivo directamente en el navegador y utiliza Ctrl+P o Cmd+P.");
+      return;
+    }
+    /* Respaldo por si el navegador no dispara afterprint */
+    setTimeout(finish, 20000);
+  });
+}
+
+/* =========================================================
+   10. ARRANQUE
+   ========================================================= */
+var initial = (location.hash || "").replace("#","");
+if(!initial || !panels[initial]){
+  var saved = lsGet("tab","");
+  initial = (saved && panels[saved]) ? saved : "inicio";
+}
+showTab(initial, { keepHash:false });
+updateProgress();
+
+/* Reacción a cambios de fragmento de URL */
+window.addEventListener("hashchange", function(){
+  var h = (location.hash || "").replace("#","");
+  if(h && panels[h]){
+    showTab(h, { keepHash:true });
+  }
+});
+
+/* Aviso único si el almacenamiento no está disponible */
+if(!LS_OK){
+  setTimeout(function(){
+    toast("Tu navegador restringe el almacenamiento local: el progreso no se guardará, pero el tutorial funciona con normalidad.");
+  }, 1200);
+}
+
+})();
+</script>
+</body>
+</html>
